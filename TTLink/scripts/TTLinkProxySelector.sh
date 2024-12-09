@@ -29,7 +29,7 @@ while true; do
         if [ -n "${mode}" ]; then
             # 将选择的代理方式赋值给 network_mode
             network_mode="${mode}"
-            echo -e "${green}您选择的代理方式是: ${network_mode}${normal}"
+            echo -e "${green}您选择的代理方式是: ${normal}"
             
             # 使用 sed 替换 settings.ini 中的 network_mode 值
             sed -i "s/^network_mode=.*/network_mode=${network_mode}/" $settings_file
