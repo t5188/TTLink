@@ -148,7 +148,7 @@ if [ -f "${bin_box}" ]; then
   log Info "---welcome---" > "${scripts_dir}/run.log"
     if pidof ${bin_box} > /dev/null 2>&1; then
         log Info "Close existing processes $(pidof ${bin_box})"
-        stop_TproxyLink
+        stop_FreeLink
         log Info "---restart---" > "${scripts_dir}/run.log"
     fi
   log Info "slot$(getprop ro.boot.slot_suffix)" >> "${scripts_dir}/run.log"
@@ -336,4 +336,4 @@ case "$1" in
         ;;
 esac
 
-# FreeLink.service
+# TTLink_tun.service
