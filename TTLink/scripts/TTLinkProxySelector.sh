@@ -18,7 +18,6 @@ else
     echo -e "${red}代理软件未开启，稍后自动开启${normal}"
 fi
 
-
 # 获取当前配置的代理模式
 network_mode=$(grep -E '^network_mode=' $settings_file | cut -d'=' -f2)
 
