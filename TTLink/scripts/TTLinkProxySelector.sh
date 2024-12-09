@@ -41,6 +41,33 @@ else
     echo -e "${red}代理软件未开启，稍后自动开启${normal}"
 fi
 
+# 记录开始时间
+start_time=$(date +%s)
+
+# 循环，直到 sing-box 和 xray 两个进程都不再运行，或者超过 5 秒
+while true; do
+    # 检查 sing-box 和 xray 进程是否正在运行
+    if ! pgrep -x "sing-box" > /dev/null && ! pgrep -x "xray" > /dev/null; then
+        echo "Both sing-box and xray are not running. Breaking the loop."
+        break
+    fi
+
+    # 获取当前时间
+    current_time=$(date +%s)
+    
+    # 计算已过时间
+    elapsed_time=$((current_time - start_time))
+
+    # 如果超过 10 秒，强制退出
+    if [ $elapsed_time -ge 10 ]; then
+        echo "Timeout reached (10 seconds). Forcefully breaking the loop."
+        break
+    fi
+
+    # 等待 1 秒后继续检查
+    sleep 1
+done
+
 # 获取当前配置的代理模式
 network_mode=$(grep -E '^network_mode=' $settings_file | cut -d'=' -f2)
 echo -e "${green}当前代理方式是: ${network_mode}${normal}"
@@ -109,4 +136,6 @@ select mode in "tproxy" "tun" "退出"; do
 done
 
 # 确保代理软件再次启用
-touch "${module_dir}/disable"
+rm -f "${module_dir}/disable"
+
+# TTLinkProxySelector.sh
