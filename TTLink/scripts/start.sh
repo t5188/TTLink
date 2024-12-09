@@ -5,9 +5,9 @@ scripts_dir=$(dirname ${scripts})
 module_dir="/data/adb/modules/TTLink"
 # Determines a path that can be used for relative path references.
 
-source ${scripts_dir}/settings.ini
-source ${scripts_dir}/TTLink_tproxy.service
-source ${scripts_dir}/TTLink_tun.service
+source "${scripts_dir}/settings.ini"
+source "${scripts_dir}/TTLink_tproxy.service"
+source "${scripts_dir}/TTLink_tun.service"
 
 cd ${scripts_dir}
 
