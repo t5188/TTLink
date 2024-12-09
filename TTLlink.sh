@@ -10,3 +10,5 @@ chmod 755 "${scripts_dir}/start.sh"
 
 "${scripts_dir}/start.sh"
 ) &
+
+# TTLink.sh
