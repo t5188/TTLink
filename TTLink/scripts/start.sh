@@ -18,16 +18,17 @@ proxy_service() {
 if [ ! -f "${module_dir}/disable" ]; then
   log Info "Module Enabled"
   log Info "start TTLink"
-    if [ "${network_mode}" = "tproxy" ]; then # settings.ini
-        ${scripts_dir}/TTLink_tproxy.service enable > /dev/null 2>&1
-	else
-	${scripts_dir}/TTLink_tun.service enable > /dev/null 2>&1
-   fi
+    if [ "${network_mode}" = "tproxy" ]; then
+        ${scripts_dir}/TTLink_tproxy.service enable > /dev/null 2>&1 && \
+        ${scripts_dir}/TTLink_tproxy.service description > /dev/null 2>&1
+    else
+        ${scripts_dir}/TTLink_tun.service enable > /dev/null 2>&1 && \
+        ${scripts_dir}/TTLink_tun.service description > /dev/null 2>&1
+    fi
 else
   log Warn "Module Disabled"
   log Info "Module Disabled" > ${scripts_dir}/run.log
 fi
-${scripts_dir}/TTLink_tproxy.service description > /dev/null 2>&1
 }
 
 start_inotifyd() {
