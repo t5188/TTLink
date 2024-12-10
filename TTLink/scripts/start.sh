@@ -4,14 +4,10 @@ scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
 module_dir="/data/adb/modules/TTLink"
 parent_dir=$(dirname ${scripts_dir})
-# Determines a path that can be used for relative path references.
-
+# source files
 source "${scripts_dir}/settings.ini"
 source "${scripts_dir}/TTLink.service"
-
-box_config_file=${parent_dir}/confs/box_config.json
-yq=${parent_dir}/binary/yq
-
+# Determines a path that can be used for relative path references.
 cd ${scripts_dir}
 
 proxy_service() {
@@ -27,7 +23,7 @@ proxy_service() {
 }
 
 start_inotifyd() {
-    PIDs=($(busybox pidof inotifyd))
+    PIDs=($(busybox pidof inotifyd)) # Environment variables are required.
     for PID in "${PIDs[@]}"; do
         if grep -q "${scripts_dir}/TTLink.inotify" "/proc/$PID/cmdline"; then
             return

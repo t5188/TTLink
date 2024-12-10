@@ -9,11 +9,6 @@ module_dir="/data/adb/modules/TTLink"
 settings_file=${scripts_dir}/settings.ini
 source ${scripts_dir}/settings.ini
 
-# 颜色定义
-green="\033[32m"
-red="\033[31m"
-normal="\033[0m"
-
 # 检查 yq 是否存在
 if [ ! -f "$yq" ]; then
     echo -e "${red}yq 工具未找到，请确保路径正确或安装 yq${normal}"
@@ -43,11 +38,11 @@ fi
 # 记录开始时间
 start_time=$(date +%s)
 
-# 循环，直到 sing-box 和 xray 两个进程都不再运行，或者超过 5 秒
+# 循环，直到 sing-box 和 xray 两个进程都不再运行，或者超过 10 秒
 while true; do
     # 检查 sing-box 和 xray 进程是否正在运行
     if ! pgrep -x "sing-box" >/dev/null && ! pgrep -x "xray" >/dev/null; then
-        echo "Both sing-box and xray are not running. Breaking the loop."
+        echo "${red}Both sing-box and xray are not running. Breaking the loop.${normal}"
         break
     fi
 

@@ -2,10 +2,11 @@
 scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
 parent_dir=$(dirname ${scripts_dir})
-
+# Determines a path that can be used for relative path references.
+cd ${scripts_dir}
+# source file
 source ${scripts_dir}/settings.ini
 chain_name="BOX_XRAY"
-
 # check iptables_version
 iptables_version=$(iptables --version | busybox awk '/^iptables/ {print $2}')
 required_version="v1.6.1"
@@ -595,7 +596,7 @@ InboundsChange() {
       "type": "tproxy",
       "tag": "tproxy-in",
       "listen": "::",
-      "listen_port": 1536,
+      "listen_port": 2025,
       "sniff": true,
       "sniff_override_destination": true
     }]' -i --output-format=json "${box_config_file}"
