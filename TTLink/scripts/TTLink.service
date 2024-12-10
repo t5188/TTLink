@@ -590,7 +590,7 @@ stop_tproxy() {
 }
 
 InboundsChange() {
-  if if [[ "${network_mode}" == "tproxy" ]]; then
+  if [[ "${network_mode}" == "tproxy" ]]; then
     $yq '.inbounds = [] | .inbounds += [{
       "type": "tproxy",
       "tag": "tproxy-in",
@@ -632,7 +632,7 @@ InboundsChange() {
 
 case "$1" in
 enable)
-  if if [[ "${network_mode}" == "tproxy" ]]; then
+  if [[ "${network_mode}" == "tproxy" ]]; then
     InboundsChange
     start_tproxy
     run_description
@@ -643,7 +643,7 @@ enable)
   fi
   ;;
 disable)
-  if if [[ "${network_mode}" == "tproxy" ]]; then
+  if [[ "${network_mode}" == "tproxy" ]]; then
     stop_tproxy
     run_description
   else
