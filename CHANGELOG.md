@@ -1,6 +1,6 @@
 # Version 0.2
 
-## 首版说明
+## 更新说明
 
 本版本包含以下内容：
 
@@ -10,7 +10,7 @@
 - 代码合并到一个文件
   ro.oem_unlock_supported=0
 
-## First Edition Notes
+## update Notes
 
 This version includes the following:
 
