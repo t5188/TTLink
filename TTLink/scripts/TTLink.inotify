@@ -10,24 +10,24 @@ monitor_file=$3
 
 if [ "${monitor_file}" = "disable" ]; then
     case "${events}" in
-        "d")
-            if [ "${network_mode}" = "tproxy" ]; then # settings.ini
-                ${scripts_dir}/TTLink_tproxy.service enable > /dev/null 2>&1
-                ${scripts_dir}/TTLink_tproxy.service description > /dev/null 2>&1
-            else
-                ${scripts_dir}/TTLink_tun.service enable > /dev/null 2>&1
-                ${scripts_dir}/TTLink_tun.service description > /dev/null 2>&1
-            fi
-            ;;
-        "n")
-            if [ "${network_mode}" = "tproxy" ]; then # settings.ini
-                ${scripts_dir}/TTLink_tproxy.service disable > /dev/null 2>&1
-                ${scripts_dir}/TTLink_tproxy.service description > /dev/null 2>&1
-            else
-                ${scripts_dir}/TTLink_tun.service disable > /dev/null 2>&1
-                ${scripts_dir}/TTLink_tun.service description > /dev/null 2>&1
-            fi
-            ;;
+    "d")
+        if [ "${network_mode}" = "tproxy" ]; then # settings.ini
+            ${scripts_dir}/TTLink.service enable >/dev/null 2>&1
+            ${scripts_dir}/TTLink.service description >/dev/null 2>&1
+        else
+            ${scripts_dir}/TTLink.service enable >/dev/null 2>&1
+            ${scripts_dir}/TTLink.service description >/dev/null 2>&1
+        fi
+        ;;
+    "n")
+        if [ "${network_mode}" = "tproxy" ]; then # settings.ini
+            ${scripts_dir}/TTLink.service disable >/dev/null 2>&1
+            ${scripts_dir}/TTLink.service description >/dev/null 2>&1
+        else
+            ${scripts_dir}/TTLink.service disable >/dev/null 2>&1
+            ${scripts_dir}/TTLink.service description >/dev/null 2>&1
+        fi
+        ;;
     esac
 fi
 

@@ -1,0 +1,655 @@
+#!/system/bin/sh
+scripts=$(realpath $0)
+scripts_dir=$(dirname ${scripts})
+parent_dir=$(dirname ${scripts_dir})
+
+source ${scripts_dir}/settings.ini
+chain_name="BOX_XRAY"
+
+# check iptables_version
+iptables_version=$(iptables --version | busybox awk '/^iptables/ {print $2}')
+required_version="v1.6.1"
+if [ "$(printf '%s\n' "$required_version" "$iptables_version" | sort -V | head -n1)" = "$required_version" ]; then
+  IPV="iptables -w 64"
+  IP6V="ip6tables -w 64"
+else
+  IPV="iptables"
+  IP6V="ip6tables"
+fi
+
+log() {
+  export TZ=Asia/Shanghai
+  now=$(date +"[%Y-%m-%d %H:%M:%S]")
+  case $1 in
+  Info)
+    [ -t 1 ] && echo -e "\033[1;32m${now} [Info]: $2\033[0m" || echo "${now} [Info]: $2"
+    ;;
+  Warn)
+    [ -t 1 ] && echo -e "\033[1;33m${now} [Warn]: $2\033[0m" || echo "${now} [Warn]: $2"
+    ;;
+  Error)
+    [ -t 1 ] && echo -e "\033[1;31m${now} [Error]: $2\033[0m" || echo "${now} [Error]: $2"
+    ;;
+  *)
+    [ -t 1 ] && echo -e "\033[1;30m${now} [$1]: $2\033[0m" || echo "${now} [$1]: $2"
+    ;;
+  esac
+}
+
+disable_ipv6() {
+  echo 0 >/proc/sys/net/ipv6/conf/all/accept_ra
+  echo 0 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
+  echo 1 >/proc/sys/net/ipv6/conf/all/disable_ipv6
+  echo 1 >/proc/sys/net/ipv6/conf/default/disable_ipv6
+  echo 1 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
+  log Info "ipv6: disable" >>"${scripts_dir}/run.log"
+}
+
+enable_ipv6() {
+  echo 1 >/proc/sys/net/ipv6/conf/all/accept_ra
+  echo 1 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
+  echo 0 >/proc/sys/net/ipv6/conf/all/disable_ipv6
+  echo 0 >/proc/sys/net/ipv6/conf/default/disable_ipv6
+  echo 0 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
+  log Info "ipv6: enable" >>"${scripts_dir}/run.log"
+}
+
+ip_rules() {
+  local max_retries=5
+  local retry_count=0
+  local index=""
+  if [ ! -f "${scripts_dir}/tables.tmp" ]; then
+    device=$(awk -F'"' '/"interface_name"/ {print $4; exit}' ${box_confs_dir}/*.json)
+    while [ -z "$index" ] && [ $retry_count -lt $max_retries ]; do
+      index=$(ip route show table all | grep -E "dev ${device} table [0-9]" | head -n 1 | awk '{print $5}')
+      if [ -n "$index" ]; then
+        break
+      fi
+      sleep 1
+      retry_count=$((retry_count + 1))
+    done
+    echo "${index} ${device}" >${scripts_dir}/tables.tmp
+  fi
+  read index device <"${scripts_dir}/tables.tmp"
+  log Info "device: ${device}" >>${scripts_dir}/run.log
+  log Info "index: $index" >>${scripts_dir}/run.log
+
+  local action=$1
+  ipv4_rules=(
+    "iif lo goto 6000 pref 5000"
+    "iif ${device} lookup main suppress_prefixlength 0 pref 5010"
+    "iif ${device} goto 6000 pref 5020"
+    "from 10.0.0.0/8 lookup ${index} pref 5030"
+    "from 172.16.0.0/12 lookup ${index} pref 5040"
+    "from 192.168.0.0/16 lookup ${index} pref 5050"
+    "nop pref 6000"
+    "lookup main pref 7000"
+    "from all iif ${device} lookup main suppress_prefixlength 0 pref 8000"
+  )
+  for rule in "${ipv4_rules[@]}"; do
+    ip -4 rule "${action}" ${rule}
+    log Info "ip -4 rule ${action} ${rule}" >>${scripts_dir}/run.log
+  done
+
+  ipv6_rules=(
+    "iif lo goto 6000 pref 5000"
+    "iif ${device} lookup main suppress_prefixlength 0 pref 5010"
+    "iif ${device} goto 6000 pref 5020"
+    # "from 2001:db8::/32 lookup ${index} pref 5030"
+    # "from fc00::/7 lookup ${index} pref 5040"
+    # "from fd00::/8 lookup ${index} pref 5050"
+    "nop pref 6000"
+    "lookup main pref 7000"
+    "from all iif ${device} lookup main suppress_prefixlength 0 pref 8000"
+  )
+  for rule in "${ipv6_rules[@]}"; do
+    ip -6 rule "${action}" ${rule}
+    log Info "ip -6 rule ${action} ${rule}" >>${scripts_dir}/run.log
+  done
+}
+
+iptables_rules() {
+  local iptables=$1
+  local action=$2
+  if [[ "${action}" == "-I" ]]; then
+    ${iptables} -N TUN_FORWARD 2>/dev/null
+    ${iptables} -F TUN_FORWARD 2>/dev/null
+    ${iptables} "${action}" TUN_FORWARD -i "${device}" -j ACCEPT
+    ${iptables} "${action}" TUN_FORWARD -o "${device}" -j ACCEPT
+    ${iptables} "${action}" FORWARD -j TUN_FORWARD
+  elif [[ "${action}" == "-D" ]]; then
+    ${iptables} "${action}" FORWARD -j TUN_FORWARD
+    ${iptables} -F TUN_FORWARD 2>/dev/null
+    ${iptables} -X TUN_FORWARD 2>/dev/null
+  fi
+  # quic
+  ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
+  ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
+}
+
+forward() {
+  local action=$1
+  if [ "${action}" = "-I" ]; then
+    echo 1 >/proc/sys/net/ipv4/ip_forward
+    echo 2 >/proc/sys/net/ipv4/conf/default/rp_filter
+    echo 2 >/proc/sys/net/ipv4/conf/all/rp_filter
+    enable_ipv6
+    ip_rules "add"
+  elif [ "${action}" = "-D" ]; then
+    disable_ipv6
+    ip_rules "del"
+  fi
+  iptables_rules "iptables" "${action}"
+  iptables_rules "ip6tables" "${action}"
+}
+
+# Define an array of whitelisted package names
+white_package_list=(
+  app.revanced.android.gms
+  app.revanced.android.youtube
+  app.rvx.android.youtube
+  bin.mt.plus
+  bin.mt.termex
+  com.android.chrome
+  com.android.vending
+  com.github.android
+  com.google.android.apps.authenticator2
+  com.google.android.apps.photos
+  com.google.android.gms
+  com.google.android.googlequicksearchbox
+  com.google.android.inputmethod.latin
+  com.google.android.marvin.talkback
+  com.google.android.printservice.recommendation
+  com.google.android.youtube
+  com.google.ar.core
+  com.microsoft.copilot
+  com.openai.chatgpt
+  com.reddit.frontpage
+  com.termux
+  com.twitter.android
+  com.zhiliaoapp.musically
+  io.github.huskydg.magisk
+  org.mozilla.firefox
+  org.telegram.messenger
+  org.telegram.messenger.web
+  org.thunderdog.challegram
+  vn.innoloop.VOALearningEnglish
+  qt.fceimbhnru.jud
+  com.topjohnwu.magisk
+  me.weishu.kernelsu
+  by.green.tuber
+  me.bmax.apatch
+  com.google.android.apps.translate
+)
+
+whitelist_uid() {
+  if [ -f "$scripts_dir/uids.list" ]; then
+    rm "$scripts_dir/uids.list"
+  fi
+
+  for package_name in "${white_package_list[@]}"; do
+    uid=$(busybox awk -v package="$package_name" '$1 ~ package {print $2}' /data/system/packages.list)
+    if [ ! -z "$uid" ]; then
+      echo "$uid" >>"$scripts_dir/uids.list"
+      # echo "$uid:$package_name" >> "$scripts_dir/uids1.list"
+    fi
+  done
+  sort -n "$scripts_dir/uids.list" | uniq >"$scripts_dir/uids.list.tmp"
+  mv "$scripts_dir/uids.list.tmp" "$scripts_dir/uids.list"
+}
+
+whitelist_array() {
+  start=0
+  end=999999
+
+  if [ -f "$scripts_dir/uids.list" ]; then
+    uids=$(cat "$scripts_dir/uids.list")
+  else
+    echo "$start-$end"
+    return
+  fi
+
+  previous=$start
+  for uid in $uids; do
+    if [ "$((uid - 1))" -ge "$previous" ]; then
+      echo "$previous-$((uid - 1))"
+    fi
+    previous=$((uid + 1))
+  done
+
+  if [ "$previous" -le "$end" ]; then
+    echo "$previous-$end"
+  fi
+}
+
+whitelist_rules() {
+  local action=${1}
+  whitelist_uid
+
+  ranges=()
+
+  output=$(whitelist_array)
+
+  if [ ${#white_package_list[@]} -gt 0 ]; then
+    for range in $output; do
+      ranges+=("$range")
+    done
+  fi
+
+  if [ ${#ranges[@]} -gt 0 ]; then
+    for range in "${ranges[@]}"; do
+      echo "${action} from all uidrange ${range} priority 9000 goto 9010"
+      ip -4 rule ${action} from all uidrange ${range} priority 9000 goto 9010
+      ip -6 rule ${action} from all uidrange ${range} priority 9000 goto 9010
+    done
+  else
+    return
+  fi
+}
+
+uid_filter() {
+  [ -f "${scripts_dir}/uids.list" ] && rm "${scripts_dir}/uids.list"
+  uid=""
+  uids=()
+  for package_name in ${package_list[@]}; do
+    uid=$(busybox awk -v package="${package_name}" '$1 ~ package {print $2}' /data/system/packages.list)
+    [ -n "${uid}" ] && uids+=("${uid}") &&
+      echo "${package_name}: ${uid}" >>${scripts_dir}/uids.list
+  done
+}
+
+# Function to create TPROXY rules
+iptables_rules() {
+  ${1} rule add fwmark "${fwmark}" table ${2} pref $((${2} * 10))
+  ${1} route add local default dev lo table ${2}
+  # Create custom chain
+  ${3} -t mangle -N ${4}_EXTERNAL
+  ${3} -t mangle -F ${4}_EXTERNAL
+  ${3} -t mangle -N ${4}_LOCAL
+  ${3} -t mangle -F ${4}_LOCAL
+  ${3} -t mangle -N DIVERTSV
+  ${3} -t mangle -F DIVERTSV
+
+  # Create custom chain rules
+  ${3} -t mangle -A ${4}_LOCAL -p udp --dport 53 -j MARK --set-mark ${fwmark}
+  ${3} -t mangle -A ${4}_LOCAL -p tcp --dport 53 -j MARK --set-mark ${fwmark}
+
+  ${3} -t mangle -A ${4}_EXTERNAL -p udp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
+  ${3} -t mangle -A ${4}_EXTERNAL -p tcp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
+
+  for subnet in ${5}; do
+    ${3} -t mangle -A ${4}_EXTERNAL -d ${subnet} -j RETURN
+    ${3} -t mangle -A ${4}_LOCAL -d ${subnet} -j RETURN
+  done
+
+  ${3} -t mangle -A ${4}_EXTERNAL -p tcp -i lo -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
+  ${3} -t mangle -A ${4}_EXTERNAL -p udp -i lo -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
+
+  if [ "${ap_list}" != "" ]; then
+    for ap in ${ap_list[@]}; do
+      ${3} -t mangle -A ${4}_EXTERNAL -p tcp -i "${ap}" -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
+      ${3} -t mangle -A ${4}_EXTERNAL -p udp -i "${ap}" -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
+    done
+  fi
+
+  case "${proxy_mode}" in
+  "blacklist")
+    if [ ${#uids[@]} -gt 0 ]; then
+      for appid in ${6}; do
+        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p tcp -j RETURN
+        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p udp ! --dport 53 -j RETURN
+      done
+      ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
+    else
+      # When the blacklist array is empty, route all traffic through the proxy.
+      ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
+    fi
+    ;;
+  "whitelist")
+    if [ ${#uids[@]} -gt 0 ]; then
+      for appid in ${6}; do
+        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p tcp -j MARK --set-mark ${fwmark}
+        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p udp -j MARK --set-mark ${fwmark}
+      done
+      if [ -n "${AIDs}" ]; then
+        for AID in ${AIDs[*]}; do
+          ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p tcp -j MARK --set-mark ${fwmark}
+          ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p udp -j MARK --set-mark ${fwmark}
+        done
+      fi
+    else
+      # When the whitelist array is empty, route all traffic through the proxy.
+      ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
+    fi
+    ;;
+  *)
+    log Error "proxy_mode incorrect" >>"${scripts_dir}/run.log"
+    ;;
+  esac
+
+  # Loopback prevention rules 1
+  ${3} -t mangle -I ${4}_LOCAL -m owner --gid-owner ${box_group} -j RETURN
+  ${3} -t mangle -I ${4}_LOCAL -m owner --gid-owner ${xray_group} -j RETURN
+  # Loopback prevention rules 2
+  ${3} -t mangle -A DIVERTSV -j MARK --set-mark "${fwmark}"
+  ${3} -t mangle -A DIVERTSV -j ACCEPT
+
+  # Referencing custom chains
+  ${3} -t mangle -A PREROUTING -j ${4}_EXTERNAL
+  ${3} -t mangle -I PREROUTING -p tcp -m socket -j DIVERTSV
+  ${3} -t mangle -A OUTPUT -j ${4}_LOCAL
+  log Info "All $(echo "${4}" | awk '{print $1}') chains have been created" >>"${scripts_dir}/run.log"
+}
+
+# Function to execute proxy rules
+run_iptables_rules() {
+  iptables_rules ip "${table}" "${IPV}" "${chain_name}" "${intranet[*]}" "${uids[*]}"
+  if [ "${ip6tables_switch}" = true ]; then
+    iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6" "${intranet6[*]}" "${uids[*]}"
+  fi
+}
+
+# Function to delete iptables rules
+del_iptables_rules() {
+  ${1} rule del fwmark "${fwmark}" table ${2} pref $((${2} * 10))
+  ${1} route del local default dev lo table ${2}
+  ${1} route flush table ${2}
+
+  while true; do
+    # Preload the chain rules in the mangle table into a variable
+    IPTABLES_DUMP=$(${3} -t mangle -L -nv)
+
+    # Remove references
+    if echo "$IPTABLES_DUMP" | grep -q "${4}_EXTERNAL"; then
+      ${3} -t mangle -D PREROUTING -j ${4}_EXTERNAL
+    fi
+    if echo "$IPTABLES_DUMP" | grep -q "DIVERTSV"; then
+      ${3} -t mangle -D PREROUTING -p tcp -m socket -j DIVERTSV
+    fi
+    if echo "$IPTABLES_DUMP" | grep -q "${4}_LOCAL"; then
+      ${3} -t mangle -D OUTPUT -j ${4}_LOCAL
+    fi
+
+    # Flush custom chains
+    for chain in "${4}_EXTERNAL" "DIVERTSV" "${4}_LOCAL"; do
+      if ${3} -t mangle -L $chain -nv &>/dev/null; then
+        ${3} -t mangle -F $chain
+      fi
+    done
+
+    # Delete custom chains
+    for chain in "${4}_EXTERNAL" "DIVERTSV" "${4}_LOCAL"; do
+      if ${3} -t mangle -L $chain -nv &>/dev/null; then
+        ${3} -t mangle -X $chain
+      fi
+    done
+
+    # Confirm all chains have been deleted
+    if ! echo "$IPTABLES_DUMP" | grep -q -E "${4}_EXTERNAL|DIVERTSV|${4}_LOCAL"; then
+      log Info "All $(echo "${4}" | awk '{print $1}') chains have been deleted" >>"${scripts_dir}/run.log"
+      break
+    fi
+
+    sleep 1 # Delay to avoid frequent looping
+  done
+}
+
+# Function to execute delete proxy rules
+run_del_iptables_rules() {
+  del_iptables_rules ip "${table}" "${IPV}" "${chain_name}"
+  if [ "${ip6tables_switch}" = true ]; then
+    del_iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6"
+  fi
+}
+
+# Function to create task
+cron_task() {
+  if [ "${crond_task}" = true ]; then
+    crontab_file="${scripts_dir}/root"
+    if pgrep busybox crond >/dev/null; then
+      kill -9 $(pgrep busybox crond)
+    fi
+    echo '5 0,12 * * * touch /data/adb/modules/TTLink/disable && sleep 3 && rm /data/adb/modules/TTLink/disable' >${crontab_file}
+    nohup busybox crond -c ${scripts_dir}/ >/dev/null 2>&1 &
+    log Info "New task: $(busybox crontab -l -c ${scripts_dir}/)"
+  else
+    log Warn "crond_task is not set to true. No crond task created."
+  fi
+}
+
+# Function to delete task
+del_task() {
+  if pgrep busybox crond >/dev/null; then
+    kill -9 $(pgrep busybox crond)
+    rm ${scripts_dir}/root >/dev/null 2>&1
+  fi
+}
+
+# Disable QUIC
+quic="disable"
+
+disable_quic() {
+  ${1} ${2} OUTPUT -p udp --dport 443 -m owner ! --gid-owner ${box_group} -j REJECT
+  ${1} ${2} OUTPUT -p udp --dport 80 -m owner ! --gid-owner ${box_group} -j REJECT
+  if [ "${2}" = "-D" ]; then
+    while ${1} -C OUTPUT -p udp --dport 443 -m owner ! --gid-owner ${box_group} -j REJECT ||
+      ${1} -C OUTPUT -p udp --dport 80 -m owner ! --gid-owner ${box_group} -j REJECT; do
+      del_disable_quic
+    done
+  fi
+}
+
+run_disable_quic() {
+  if [ "${quic}" = "disable" ]; then
+    disable_quic "${IPV}" "-I"
+    if [ "${ip6tables_switch}" = true ]; then
+      disable_quic "${IP6V}" "-I"
+    fi
+  fi
+}
+
+del_disable_quic() {
+  if [ "${quic}" = "disable" ]; then
+    disable_quic "${IPV}" "-D"
+    if [ "${ip6tables_switch}" = true ]; then
+      disable_quic "${IP6V}" "-D"
+    fi
+  fi
+}
+
+# description
+version() {
+  version_box=$(${bin_box} version | head -n 1 | awk '{print $3}')
+  version_xray=$(${bin_xray} version | head -n 1 | awk '{print $2}')
+}
+
+description() {
+  local symbol=$1
+  local event=$2
+  version
+  prop_file="/data/adb/modules/TTLink/module.prop"
+  core_name_box="${bin_box##*/}"
+  core_name_xray="${bin_xray##*/}"
+  current_time=$(date "+[%m.%d %H:%M]")
+  sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} work with ${core_name_xray} ${version_xray} ${network_mode} ${event}" "${prop_file}"
+  log Info "${symbol} ${network_mode} ${event}" >>"${scripts_dir}/run.log"
+}
+
+run_description() {
+  if pidof "${bin_box}" >/dev/null 2>&1; then
+    description "🤪" "started"
+  else
+    description "🥴" "stopped"
+  fi
+}
+
+start_tun() {
+  if [ -f "${bin_box}" ]; then
+    log Info "---welcome---" >"${scripts_dir}/run.log"
+    if pidof ${bin_box} >/dev/null 2>&1; then
+      log Info "Close existing processes $(pidof ${bin_box})"
+      stop_tun
+      log Info "---restart---" >"${scripts_dir}/run.log"
+    fi
+    log Info "slot$(getprop ro.boot.slot_suffix)" >>"${scripts_dir}/run.log"
+    chmod +x ${bin_box}
+    chown root:net_admin ${bin_box}
+    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
+    forward -I
+    chmod +x ${bin_xray}
+    chown root:net_admin ${bin_xray}
+    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
+    pid=$(pidof sing-box 2>/dev/null)
+    [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${scripts_dir}/run.log"
+    pid=$(pidof xray 2>/dev/null)
+    [ -n "${pid}" ] && log Info "add xray pid: ${pid}" >>"${scripts_dir}/run.log"
+    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "TUN已开启" >/dev/null 2>&1
+    log Info "Create a new process $(pidof ${bin_box})"
+    whitelist_rules add
+  else
+    log Error "Binary ${bin_box} not found"
+    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "${bin_box##*/} not found" >/dev/null 2>&1
+    exit 1
+  fi
+}
+
+stop_tun() {
+  if ! pidof "${bin_box}" >/dev/null 2>&1; then
+    exit 1
+  fi
+  log Info "---goodbye---" >"${scripts_dir}/run.log"
+  log Info "slot$(getprop ro.boot.slot_suffix)" >>"${scripts_dir}/run.log"
+  forward -D
+  whitelist_rules del
+  pid=$(pidof sing-box 2>/dev/null)
+  [ -n "${pid}" ] && log Info "del sing-box pid: ${pid}" >>"${scripts_dir}/run.log"
+  pid=$(pidof xray 2>/dev/null)
+  [ -n "${pid}" ] && log Info "del xray pid: ${pid}" >>"${scripts_dir}/run.log"
+  kill $(pidof sing-box) >/dev/null 2>&1
+  kill $(pidof xray) >/dev/null 2>&1
+  am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "TUN已关闭" >/dev/null 2>&1
+  rm -f ${scripts_dir}/tables.tmp
+  rm -f ${scripts_dir}/*.list
+  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
+}
+
+# Function to start the proxy
+start_tproxy() {
+  if [ -f "${bin_box}" ]; then
+    log Info "---welcome---" >"${scripts_dir}/run.log"
+    if pidof ${bin_box} >/dev/null 2>&1; then
+      log Info "Close existing processes $(pidof ${bin_box})"
+      stop_tproxy
+      log Info "---restart---" >"${scripts_dir}/run.log"
+    fi
+    log Info "slot$(getprop ro.boot.slot_suffix)" >>"${scripts_dir}/run.log"
+    chmod 755 ${bin_box}
+    chown root:net_admin ${bin_box}
+    uid_filter
+    run_iptables_rules
+    run_disable_quic
+    ulimit -SHn 1000000
+    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
+    chmod 755 ${bin_xray}
+    chown root:net_admin ${bin_xray}
+    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
+    pid=$(pidof sing-box 2>/dev/null)
+    [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${scripts_dir}/run.log"
+    pid=$(pidof xray 2>/dev/null)
+    [ -n "${pid}" ] && log Info "add xray pid: ${pid}" >>"${scripts_dir}/run.log"
+    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "TP已开启" >/dev/null 2>&1
+    log Info "Create a new process $(pidof ${bin_box})"
+    cron_task
+  else
+    log Error "Binary ${bin_box} not found"
+    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "${bin_box##*/} not found" >/dev/null 2>&1
+    exit 1
+  fi
+}
+
+# Function to stop the proxy
+stop_tproxy() {
+  if ! pidof "${bin_box}" >/dev/null 2>&1; then
+    exit 1
+  fi
+  log Info "---goodbye---" >"${scripts_dir}/run.log"
+  log Info "slot$(getprop ro.boot.slot_suffix)" >>"${scripts_dir}/run.log"
+  run_del_iptables_rules >/dev/null 2>&1
+  del_disable_quic
+  del_task
+  pid=$(pidof sing-box 2>/dev/null)
+  [ -n "${pid}" ] && log Info "del sing-box pid: ${pid}" >>"${scripts_dir}/run.log"
+  pid=$(pidof xray 2>/dev/null)
+  [ -n "${pid}" ] && log Info "del xray pid: ${pid}" >>"${scripts_dir}/run.log"
+  kill $(pidof sing-box) >/dev/null 2>&1
+  kill $(pidof xray) >/dev/null 2>&1
+  rm ${scripts_dir}/*.list
+  am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "TP已关闭" >/dev/null 2>&1
+  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
+}
+
+InboundsChange() {
+  if [ "${network_mode}" = "tproxy" ]; then
+    $yq '.inbounds = [] | .inbounds += [{
+      "type": "tproxy",
+      "tag": "tproxy-in",
+      "listen": "::",
+      "listen_port": 1536,
+      "sniff": true,
+      "sniff_override_destination": true
+    }]' -i --output-format=json "${box_config_file}"
+  else
+    $yq '.inbounds = [] | .inbounds += [{
+      "type": "tun",
+      "tag": "tun-in",
+      "interface_name": "tun0",
+      "mtu": 1400,
+      "auto_route": true,
+      "strict_route": true,
+      "endpoint_independent_nat": true,
+      "address": [
+        "172.18.0.1/30",
+        "fdfe:dcba:9876::1/126"
+      ],
+      "route_exclude_address": [
+        "127.0.0.0/16",
+        "fc00::/7",
+        "168.138.170.58/32",
+        "138.2.83.107/32",
+        "146.235.16.222/32",
+        "213.35.97.236/32",
+        "129.150.50.129/32",
+        "146.56.128.39/32",
+        "152.70.244.79/32"
+      ],
+      "stack": "system",
+      "sniff": true,
+      "sniff_override_destination": true
+    }]' -i --output-format=json "${box_config_file}"
+  fi
+}
+
+case "$1" in
+enable)
+  if [ "${network_mode}" = "tproxy" ]; then
+    InboundsChange
+    start_tproxy
+    run_description
+  else
+    InboundsChange
+    start_tun
+    run_description
+  fi
+  ;;
+disable)
+  if [ "${network_mode}" = "tproxy" ]; then
+    stop_tproxy
+    run_description
+  else
+    stop_tun
+    run_description
+  fi
+  ;;
+esac
+
+# TTLink.service
