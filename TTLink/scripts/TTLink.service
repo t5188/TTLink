@@ -343,6 +343,7 @@ iptables_rules() {
 
 # Function to execute proxy rules
 run_iptables_rules() {
+  log Info "tp_port: ${tp_port}" >>"${scripts_dir}/run.log"
   iptables_rules ip "${table}" "${IPV}" "${chain_name}" "${intranet[*]}" "${uids[*]}"
   if [ "${ip6tables_switch}" = true ]; then
     iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6" "${intranet6[*]}" "${uids[*]}"
