@@ -599,6 +599,7 @@ InboundsChange() {
       "sniff": true,
       "sniff_override_destination": true
     }]' -i --output-format=json "${box_config_file}"
+    tp_port=$(awk -F':' '/"listen_port"/ {gsub(/[^0-9]/, "", $NF); print $NF; exit}' "${box_confs_dir}"/*.json 2>/dev/null)
   else
     $yq '.inbounds = [] | .inbounds += [{
       "type": "tun",
