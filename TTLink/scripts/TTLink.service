@@ -144,15 +144,12 @@ forward() {
   iptables_rules "ip6tables" "${action}"
 }
 
-# Define an array of whitelisted package names
-white_package_list=(app.nicegram app.revanced.android.gms app.revanced.android.youtube app.rvx.android.youtube bin.mt.plus bin.mt.termex by.green.tuber com.android.chrome com.android.providers.downloads com.android.vending com.avuscapital.trading212 com.binance.dev com.cloudflare.onedotonedotonedotone com.giffgaffmobile.controller com.github.android com.google.android.apps.authenticator2 com.google.android.apps.googlevoice com.google.android.apps.photos com.google.android.apps.translate com.google.android.gm com.google.android.gms com.google.android.googlequicksearchbox com.google.android.gsf com.google.android.inputmethod.latin com.google.android.marvin.talkback com.google.android.printservice.recommendation com.google.android.youtube com.google.ar.core com.microsoft.copilot com.openai.chatgpt com.reddit.frontpage com.talkatone.android com.termux com.topjohnwu.magisk com.transferwise.android com.twitter.android com.zhiliaoapp.musically io.github.huskydg.magisk me.bmax.apatch me.weishu.kernelsu notion.id org.mozilla.firefox org.telegram.messenger org.telegram.messenger.web org.thunderdog.challegram qt.fceimbhnru.jud vn.innoloop.VOALearningEnglish)
-
 whitelist_uid() {
   if [ -f "$scripts_dir/uids.list" ]; then
     rm "$scripts_dir/uids.list"
   fi
 
-  for package_name in "${white_package_list[@]}"; do
+  for package_name in "${package_list[@]}"; do
     uid=$(busybox awk -v package="$package_name" '$1 ~ package {print $2}' /data/system/packages.list)
     if [ ! -z "$uid" ]; then
       echo "$uid" >>"$scripts_dir/uids.list"
@@ -195,7 +192,7 @@ whitelist_rules() {
 
   output=$(whitelist_array)
 
-  if [ ${#white_package_list[@]} -gt 0 ]; then
+  if [ ${#package_list[@]} -gt 0 ]; then
     for range in $output; do
       ranges+=("$range")
     done
