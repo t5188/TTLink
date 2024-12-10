@@ -8,7 +8,7 @@ parent_dir=$(dirname ${scripts_dir})
 
 source "${scripts_dir}/settings.ini"
 source "${scripts_dir}/TTLink.service"
-source "${scripts_dir}/TTLink.service"
+
 box_config_file=${parent_dir}/confs/box_config.json
 yq=${parent_dir}/binary/yq
 
