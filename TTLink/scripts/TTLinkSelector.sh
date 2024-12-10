@@ -7,6 +7,7 @@ scripts_dir=$(dirname ${scripts})
 parent_dir=$(dirname ${scripts_dir})
 module_dir="/data/adb/modules/TTLink"
 settings_file=${scripts_dir}/settings.ini
+yq=${parent_dir}/binary/yq
 
 # 颜色定义
 green="\033[32m"
