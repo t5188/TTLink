@@ -77,13 +77,11 @@ select mode in "tproxy" "tun" "退出"; do
     case $mode in
     "tproxy")
         echo -e "${green}您选择的代理方式是: tproxy${normal}"
-        # 更新 settings.ini 中的代理模式
         sed -i "s/^network_mode=.*/network_mode=tproxy/" $settings_file
         break
         ;;
     "tun")
         echo -e "${green}您选择的代理方式是: tun${normal}"
-        # 更新 settings.ini 中的代理模式
         sed -i "s/^network_mode=.*/network_mode=tun/" $settings_file
         break
         ;;
