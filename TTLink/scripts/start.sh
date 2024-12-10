@@ -14,9 +14,6 @@ yq=${parent_dir}/binary/yq
 
 cd ${scripts_dir}
 
-# Environment variable settings
-export PATH="/data/adb/ap/bin:/data/adb/ksu/bin:/data/adb/magisk:$PATH"
-
 proxy_service() {
     if [ ! -f "${module_dir}/disable" ]; then
         log Info "Module Enabled"
