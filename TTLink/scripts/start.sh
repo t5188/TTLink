@@ -18,7 +18,7 @@ proxy_service() {
         ${scripts_dir}/TTLink.service description >/dev/null 2>&1
     else
         log Warn "Module Disabled"
-        log Info "Module Disabled" >${scripts_dir}/run.log
+        log Info "Module Disabled" >${parent_dir}/log/run.log
     fi
 }
 
