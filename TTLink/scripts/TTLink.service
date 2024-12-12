@@ -18,25 +18,6 @@ else
   IP6V="ip6tables"
 fi
 
-log() {
-  export TZ=Asia/Shanghai
-  now=$(date +"[%Y-%m-%d %H:%M:%S]")
-  case $1 in
-  Info)
-    [ -t 1 ] && echo -e "\033[1;32m${now} [Info]: $2\033[0m" || echo "${now} [Info]: $2"
-    ;;
-  Warn)
-    [ -t 1 ] && echo -e "\033[1;33m${now} [Warn]: $2\033[0m" || echo "${now} [Warn]: $2"
-    ;;
-  Error)
-    [ -t 1 ] && echo -e "\033[1;31m${now} [Error]: $2\033[0m" || echo "${now} [Error]: $2"
-    ;;
-  *)
-    [ -t 1 ] && echo -e "\033[1;30m${now} [$1]: $2\033[0m" || echo "${now} [$1]: $2"
-    ;;
-  esac
-}
-
 disable_ipv6() {
   echo 0 >/proc/sys/net/ipv6/conf/all/accept_ra
   echo 0 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
