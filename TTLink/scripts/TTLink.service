@@ -534,7 +534,7 @@ stop_tproxy() {
 
 InboundsChange() {
   if [[ "${network_mode}" == "tproxy" ]]; then
-    $yq '.inbounds = [] | .inbounds += [{
+    $yq '.inbounds = [{
       "type": "tproxy",
       "tag": "tproxy-in",
       "listen": "::",
@@ -544,7 +544,7 @@ InboundsChange() {
     }]' -i --output-format=json "${box_config_file}"
     tp_port=$(awk -F':' '/"listen_port"/ {gsub(/[^0-9]/, "", $NF); print $NF; exit}' "${box_confs_dir}"/*.json 2>/dev/null)
   else
-    $yq '.inbounds = [] | .inbounds += [{
+    $yq '.inbounds = [{
       "type": "tun",
       "tag": "tun-in",
       "interface_name": "tun0",
