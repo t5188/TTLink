@@ -87,3 +87,5 @@ if [ "$events" = "w" ] && [ ! -f ${module_dir}/disable ] && [ "${network_mode}" 
 else
   rm_block_loopback
 fi
+
+# net.inotify
