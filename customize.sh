@@ -79,4 +79,6 @@ else
   ui_print "- 首次安装，无备份配置可还原"
 fi
 
+find "${source_folder}" -type f -name ".gitkeep" -exec rm -f {} +
+
 ui_print "- enjoy!"
