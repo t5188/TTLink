@@ -58,10 +58,8 @@ else
   sed -i "s/name=.*/name=TTLink for Magisk/g" $MODPATH/module.prop
 fi
 
-# 找到文件夹对应的最大的数字
 largest_folder=$(find /data/adb -maxdepth 1 -type d -name 'TTLink[0-9]*' | sed 's/.*TTLink//' | sed 's/_//g' | sort -nr | head -n 1)
 
-# 使用这个最大的数字，重新匹配回原始文件夹名
 if [ -n "$largest_folder" ]; then
   for folder in /data/adb/TTLink*; do
     clean_name=$(echo "$folder" | sed 's/.*TTLink//' | sed 's/_//g')
