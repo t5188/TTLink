@@ -1,7 +1,6 @@
 #!/system/bin/sh
 scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
-module_dir="/data/adb/modules/TTLink"
 
 events=$1
 monitor_file=$3

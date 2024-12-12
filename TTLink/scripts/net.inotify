@@ -2,6 +2,7 @@
 scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
 parent_dir=$(dirname ${scripts_dir})
+module_dir="/data/adb/modules/TTLink"
 
 events=$1
 
@@ -28,28 +29,28 @@ block_loopback() {
   local action=${2}
   local name=${3}
   local n=${4}
-  
-if [ "${action}" != "-D" ]; then
-  ${iptables} -t mangle -N ${name}
-  ${iptables} -t mangle -F ${name}
-  if [ "${n}" = "-4" ]; then
-    ip ${n} a | busybox awk '/inet/ {print $2}' | grep -vE "^127.0.0.1" | while read -r local_ipv4; do
-      ${iptables} -t mangle ${action} ${name} -d $local_ipv4 -j ACCEPT
-      cmd_result=$?
-      [ "${cmd_result}" = "0" ] && log Info "local ip is $local_ipv4, anti-loopback rule has been inserted" >>"${parent_dir}/log/run.log"
-    done
-  elif [ "${n}" = "-6" ]; then
-    ip ${n} a | busybox awk '/inet6/ {print $2}' | grep -vE "^fe80|^::1|^fd00" | while read -r local_ipv6; do
-      ${iptables} -t mangle ${action} ${name} -d $local_ipv6 -j ACCEPT
-      cmd_result=$?
-      [ "${cmd_result}" = "0" ] && log Info "local ip is $local_ipv6, anti-loopback rule has been inserted" >>"${parent_dir}/log/run.log"
-    done
+
+  if [ "${action}" != "-D" ]; then
+    ${iptables} -t mangle -N ${name}
+    ${iptables} -t mangle -F ${name}
+    if [ "${n}" = "-4" ]; then
+      ip ${n} a | busybox awk '/inet/ {print $2}' | grep -vE "^127.0.0.1" | while read -r local_ipv4; do
+        ${iptables} -t mangle ${action} ${name} -d $local_ipv4 -j ACCEPT
+        cmd_result=$?
+        [ "${cmd_result}" = "0" ] && log Info "local ip is $local_ipv4, anti-loopback rule has been inserted" >>"${parent_dir}/log/run.log"
+      done
+    elif [ "${n}" = "-6" ]; then
+      ip ${n} a | busybox awk '/inet6/ {print $2}' | grep -vE "^fe80|^::1|^fd00" | while read -r local_ipv6; do
+        ${iptables} -t mangle ${action} ${name} -d $local_ipv6 -j ACCEPT
+        cmd_result=$?
+        [ "${cmd_result}" = "0" ] && log Info "local ip is $local_ipv6, anti-loopback rule has been inserted" >>"${parent_dir}/log/run.log"
+      done
+    fi
   fi
- fi
- 
-    ${iptables} -t mangle ${action} PREROUTING -j ${name}
-    ${iptables} -t mangle ${action} OUTPUT -j ${name}
-      
+
+  ${iptables} -t mangle ${action} PREROUTING -j ${name}
+  ${iptables} -t mangle ${action} OUTPUT -j ${name}
+
   if [ "${action}" = "-D" ]; then
     ${iptables} -t mangle -F ${name}
     ${iptables} -t mangle -X ${name}
@@ -58,37 +59,32 @@ if [ "${action}" != "-D" ]; then
 }
 
 run_block_loopback() {
-block_loopback "${IPV}" "-I" "${chain_name}" "-4"
-block_loopback "${IP6V}" "-I" "${chain_name}6" "-6"
+  block_loopback "${IPV}" "-I" "${chain_name}" "-4"
+  block_loopback "${IP6V}" "-I" "${chain_name}6" "-6"
 }
 
 rm_block_loopback() {
-    while true; do
-      if iptables -t mangle -L -v -n | grep -q "${chain_name}" &> /dev/null; then
-        block_loopback "${IPV}" "-D" "${chain_name}" "-4"
-        sleep 1
-      else
-        break
-      fi
-    done
-    while true; do
-      if ip6tables -t mangle -L -v -n | grep -q "${chain_name}" &> /dev/null; then
-        block_loopback "${IP6V}" "-D" "${chain_name}6" "-6"
-        sleep 1
-      else
-        break
-      fi
-    done
+  while true; do
+    if iptables -t mangle -L -v -n | grep -q "${chain_name}" &>/dev/null; then
+      block_loopback "${IPV}" "-D" "${chain_name}" "-4"
+      sleep 1
+    else
+      break
+    fi
+  done
+  while true; do
+    if ip6tables -t mangle -L -v -n | grep -q "${chain_name}" &>/dev/null; then
+      block_loopback "${IP6V}" "-D" "${chain_name}6" "-6"
+      sleep 1
+    else
+      break
+    fi
+  done
 }
 
-if [ "$events" = "w" ]; then
-  if [ "${network_mode}" = "tproxy" ]; then # come from source 
-      rm_block_loopback
-      run_block_loopback
-  else
-      rm_block_loopback
-  fi
+if [ "$events" = "w" ] && [ ! -f ${module_dir}/disable ] && [ "${network_mode}" = "tproxy" ]; then
+  rm_block_loopback
+  run_block_loopback
+else
+  rm_block_loopback
 fi
-
-
-
