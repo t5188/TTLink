@@ -6,7 +6,6 @@ module_dir="/data/adb/modules/TTLink"
 
 events=$1
 
-export PATH="/data/adb/magisk:/data/adb/ksu/bin:/data/adb/ap/bin:$PATH"
 source ${scripts_dir}/settings.ini
 
 ipt1=$(iptables --version | busybox awk '/^iptables/ {print $2}')
