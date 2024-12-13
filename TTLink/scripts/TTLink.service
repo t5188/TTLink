@@ -196,7 +196,7 @@ uid_filter() {
   uids=()
   for package_name in ${package_list[@]}; do
     uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
-    [ -n "${uid}" ] && uids+=("${uid}") &&
+    [ -n "${uid}" ] && uids+=("${uid}") && \
       echo "${package_name}: ${uid}" >>${scripts_dir}/uids.list
   done
 }
