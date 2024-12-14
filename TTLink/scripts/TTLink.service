@@ -271,8 +271,8 @@ iptables_rules() {
   esac
 
   # Loopback prevention rules 1
-  ${3} -t mangle -I ${4}_LOCAL -m owner --gid-owner ${box_group} -j RETURN
-  ${3} -t mangle -I ${4}_LOCAL -m owner --gid-owner ${xray_group} -j RETURN
+  ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${box_user} --gid-owner ${box_group} -j RETURN
+  ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${xray_user} --gid-owner ${xray_group} -j RETURN
   # Loopback prevention rules 2
   ${3} -t mangle -A DIVERTSV -j MARK --set-mark "${fwmark}"
   ${3} -t mangle -A DIVERTSV -j ACCEPT
@@ -442,7 +442,7 @@ start_tun() {
     forward -I
     chmod +x ${bin_xray}
     chown root:net_admin ${bin_xray}
-    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} >/dev/null 2>&1 &
+    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     pid=$(pidof sing-box 2>/dev/null)
     [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
     pid=$(pidof xray 2>/dev/null)
@@ -496,7 +496,7 @@ start_tproxy() {
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     chmod 755 ${bin_xray}
     chown root:net_admin ${bin_xray}
-    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} >/dev/null 2>&1 &
+    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     pid=$(pidof sing-box 2>/dev/null)
     [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
     pid=$(pidof xray 2>/dev/null)
