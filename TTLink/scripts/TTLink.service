@@ -90,7 +90,7 @@ ip_rules() {
   done
 }
 
-iptables_rules() {
+iptables_rules4tun() {
   local iptables=$1
   local action=$2
   if [[ "${action}" == "-I" ]]; then
@@ -121,8 +121,8 @@ forward() {
     disable_ipv6
     ip_rules "del"
   fi
-  iptables_rules "iptables" "${action}"
-  iptables_rules "ip6tables" "${action}"
+  iptables_rules4tun "iptables" "${action}"
+  iptables_rules4tun "ip6tables" "${action}"
 }
 
 whitelist_uid() {
