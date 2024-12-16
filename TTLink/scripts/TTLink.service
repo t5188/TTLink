@@ -176,7 +176,7 @@ package_rules4tun() {
   stdout2array=()
   # If in whitelist mode and stdout2array is not empty
   if [[ "${proxy_mode}" == "whitelist" ]] && [ "${#package_list[@]}" -gt 0 ]; then
-  # Get the UID range output
+    # Get the UID range output
     stdout2array=($(uid_intervals))
     for whiteapp in "${stdout2array[@]}"; do
       ip -4 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
@@ -184,7 +184,7 @@ package_rules4tun() {
     done
   # If in blacklist mode and uids is not empty
   elif [[ "${proxy_mode}" == "blacklist" ]] && [ "${#package_list[@]}" -gt 0 ]; then
-  # Get the UID output
+    # Get the UID output
     initialize_uids
     for blackapp in "${uids[@]}"; do
       ip -4 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
