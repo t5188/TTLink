@@ -126,6 +126,9 @@ forward() {
 }
 
 whitelist_uid() {
+  start=0
+  end=999999
+
   if [ -f "${scripts_dir}/uids.list" ]; then
     rm "${scripts_dir}/uids.list"
   fi
@@ -137,22 +140,22 @@ whitelist_uid() {
       # echo "$uid:$package_name" >> "${scripts_dir}/uids1.list"
     fi
   done
+
+  echo "${box_user}" >>"${scripts_dir}/uids.list"
+  echo "${xray_user}" >>"${scripts_dir}/uids.list"
+  
   sort -n "${scripts_dir}/uids.list" | uniq >"${scripts_dir}/uids.list.tmp"
   mv "${scripts_dir}/uids.list.tmp" "${scripts_dir}/uids.list"
-  uids=$(cat "${scripts_dir}/uids.list")
-}
-
-whitelist_array() {
-  start=0
-  end=999999
 
   if [ -f "${scripts_dir}/uids.list" ]; then
-    uids=$(cat "${scripts_dir}/uids.list")
+    uids=$(cat "${scripts_dir}/uids.list") # Non-array
   else
     echo "$start-$end"
     return
   fi
+}
 
+whitelist_array_interval() {
   previous=$start
   for uid in $uids; do
     if [ "$((uid - 1))" -ge "$previous" ]; then
@@ -172,7 +175,7 @@ whitelist_rules() {
 
   ranges=()
 
-  output=$(whitelist_array)
+  output=$(whitelist_array_interval)
 
   if [ ${#package_list[@]} -gt 0 ]; then
     for range in $output; do
@@ -182,15 +185,13 @@ whitelist_rules() {
 
   if [[ "${proxy_mode}" == "whitelist" ]] && [ "${#ranges[@]}" -gt 0 ]; then
     for whiteapp in "${ranges[@]}"; do
-      echo "[Whitelist] ${action} from all uidrange ${whiteapp} priority 9000 goto 9010"
       ip -4 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
     done
-  elif [[ "${proxy_mode}" == "blacklist" ]] && [ "${#uids[@]}" -gt 0 ]; then
-    for blackapp in "${uids[@]}"; do
-      echo "[Blacklist] ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010"
-      ip -4 rule ${action} from all uidrange "${blackapp}-${blackapp}" priority 9000 goto 9010
-      ip -6 rule ${action} from all uidrange "${blackapp}-${blackapp}" priority 9000 goto 9010
+  elif [[ "${proxy_mode}" == "blacklist" ]] && [[ -n "${uids}" ]]; then
+    for blackapp in ${uids}; do # Non-array, the variable cannot have quotes around it.
+      ip -4 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
+      ip -6 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
     done
   else
     return
