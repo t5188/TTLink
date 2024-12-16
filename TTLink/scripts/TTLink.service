@@ -143,7 +143,7 @@ uid_filter4tun() {
 
   echo "${box_user}" >>"${scripts_dir}/uids.list"
   echo "${xray_user}" >>"${scripts_dir}/uids.list"
-  
+
   sort -n "${scripts_dir}/uids.list" | uniq >"${scripts_dir}/uids.list.tmp"
   mv "${scripts_dir}/uids.list.tmp" "${scripts_dir}/uids.list"
 
@@ -204,7 +204,7 @@ uid_interval() {
   uids=()
   for package_name in ${package_list[@]}; do
     uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
-    [ -n "${uid}" ] && uids+=("${uid}") &&
+    [ -n "${uid}" ] && uids+=("${uid}") && \
       echo "${package_name}: ${uid}" >>${scripts_dir}/uids.list
   done
 }
