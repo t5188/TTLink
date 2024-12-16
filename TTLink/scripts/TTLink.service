@@ -140,6 +140,7 @@ initialize_uids() {
       echo "${package_name}: ${uid}" >>"${scripts_dir}/uids.list"
     fi
   done
+  sort -t ':' -k2 -n "${scripts_dir}/uids.list" -o "${scripts_dir}/uids.list"
   # Add box_user and xray_user to the uids array, then sort it
   if [[ "${network_mode}" == "tun" ]] && [ "${#package_list[@]}" -eq 0 ]; then
     uids+=("${box_user}" "${xray_user}")
