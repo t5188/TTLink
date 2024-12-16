@@ -129,29 +129,32 @@ initialize_uids() {
   uid=""
   uids=()
 
+  # Remove the uids.list file if it exists
   if [ -f "${scripts_dir}/uids.list" ]; then
     rm "${scripts_dir}/uids.list"
   fi
 
-  for package_name in ${package_list[@]}; do
+  # Loop through package_list to get UID and output it to uids.list
+  for package_name in "${package_list[@]}"; do
     uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
-    [ -n "${uid}" ] && uids+=("${uid}") &&
-      echo "${package_name}: ${uid}" >>${scripts_dir}/uids.list
+    if [ -n "${uid}" ]; then
+      uids+=("${uid}")
+      echo "${package_name}: ${uid}" >>"${scripts_dir}/uids.list"
+    fi
   done
 
+  # Add box_user and xray_user to the uids array, then sort it
   uids+=("${box_user}" "${xray_user}")
   uids=($(printf "%s\n" "${uids[@]}" | sort -n))
-
-  echo "${box_user}" >>"${scripts_dir}/uids.list"
-  echo "${xray_user}" >>"${scripts_dir}/uids.list"
 }
 
-uid_intervals() { # 12345-22345 22346-32346
+uid_intervals() { # Output UID ranges, e.g., 12345-22345 22346-32346
   initialize_uids
 
   start=0
   end=999999
 
+  # If uids array is empty, output the default range
   if [ "${#uids[@]}" -eq 0 ]; then
     echo "${start}-${end}"
     return
@@ -159,12 +162,14 @@ uid_intervals() { # 12345-22345 22346-32346
 
   previous=$start
   for uid in "${uids[@]}"; do
+    # If the current UID is greater than previous by 1, output the range
     if [ "$((uid - 1))" -ge "${previous}" ]; then
       echo "${previous}-$((uid - 1))"
     fi
     previous=$((uid + 1))
   done
 
+  # If the last UID is less than end, output the final range
   if [ "${previous}" -le "${end}" ]; then
     echo "${previous}-${end}"
   fi
@@ -175,14 +180,17 @@ package_rules4tun() {
 
   stdout2array=()
 
-  stdout2array=($(uid_intervals)) # Save the standard output of uid_intervals into an array.
+  # Get the UID range output
+  stdout2array=($(uid_intervals))
 
+  # If in whitelist mode and stdout2array is not empty
   if [[ "${proxy_mode}" == "whitelist" ]] && [ "${#stdout2array[@]}" -gt 0 ]; then
     for whiteapp in "${stdout2array[@]}"; do
       ip -4 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
     done
-  elif [[ "${proxy_mode}" == "blacklist" ]] && [[ ${#uids[@]} -gt 0 ]]; then
+  # If in blacklist mode and uids is not empty
+  elif [[ "${proxy_mode}" == "blacklist" ]] && [ "${#uids[@]}" -gt 0 ]; then
     for blackapp in "${uids[@]}"; do
       ip -4 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
