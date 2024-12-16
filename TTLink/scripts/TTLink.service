@@ -428,19 +428,21 @@ run_description() {
 }
 
 start_tun() {
-  if [ -f "${bin_box}" ]; then
+  if [ -f "${bin_box}" ] && [ -f "${bin_xray}" ]; then
     log Info "---welcome---" >"${parent_dir}/log/run.log"
-    if pidof ${bin_box} >/dev/null 2>&1; then
-      log Info "Close existing processes $(pidof ${bin_box})"
+    if { pidof "${bin_box}" || pidof "${bin_xray}"; } >/dev/null 2>&1; then
+      log Info "Close existing processes"
       stop_tun
       log Info "---restart---" >"${parent_dir}/log/run.log"
     fi
     log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
-    chmod +x ${bin_box}
+    chmod 755 ${bin_box}
     chown root:net_admin ${bin_box}
+    chmod o+rw ${public_log_dir}
+    find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null	
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     forward -I
-    chmod +x ${bin_xray}
+    chmod 755 ${bin_xray}
     chown root:net_admin ${bin_xray}
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     pid=$(pidof sing-box 2>/dev/null)
@@ -458,7 +460,7 @@ start_tun() {
 }
 
 stop_tun() {
-  if ! pidof "${bin_box}" >/dev/null 2>&1; then
+  if { ! pidof ${bin_box} && ! pidof ${bin_xray} ;} >/dev/null 2>&1; then
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
@@ -479,20 +481,22 @@ stop_tun() {
 
 # Function to start the proxy
 start_tproxy() {
-  if [ -f "${bin_box}" ]; then
+  if [ -f "${bin_box}" ] && [ -f "${bin_xray}" ]; then
     log Info "---welcome---" >"${parent_dir}/log/run.log"
-    if pidof ${bin_box} >/dev/null 2>&1; then
-      log Info "Close existing processes $(pidof ${bin_box})"
+    if { pidof "${bin_box}" || pidof "${bin_xray}"; } >/dev/null 2>&1; then
+      log Info "Close existing processes"
       stop_tproxy
       log Info "---restart---" >"${parent_dir}/log/run.log"
     fi
     log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
-    chmod 755 ${bin_box}
-    chown root:net_admin ${bin_box}
     uid_filter
     run_iptables_rules
     run_disable_quic
     ulimit -SHn 1000000
+    chmod 755 ${bin_box}
+    chown root:net_admin ${bin_box}
+    chmod o+rw ${public_log_dir}
+    find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     chmod 755 ${bin_xray}
     chown root:net_admin ${bin_xray}
@@ -513,7 +517,7 @@ start_tproxy() {
 
 # Function to stop the proxy
 stop_tproxy() {
-  if ! pidof "${bin_box}" >/dev/null 2>&1; then
+  if { ! pidof ${bin_box} && ! pidof ${bin_xray} ;} >/dev/null 2>&1; then
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
@@ -555,17 +559,6 @@ InboundsChange() {
       "address": [
         "172.18.0.1/30",
         "fdfe:dcba:9876::1/126"
-      ],
-      "route_exclude_address": [
-        "127.0.0.0/16",
-        "fc00::/7",
-        "168.138.170.58/32",
-        "138.2.83.107/32",
-        "146.235.16.222/32",
-        "213.35.97.236/32",
-        "129.150.50.129/32",
-        "146.56.128.39/32",
-        "152.70.244.79/32"
       ],
       "stack": "system",
       "sniff": true,
