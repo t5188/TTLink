@@ -125,7 +125,7 @@ forward() {
   iptables_rules4tun "ip6tables" "${action}"
 }
 
-whitelist_uid() {
+uid_filter4tun() {
   start=0
   end=999999
 
@@ -155,7 +155,7 @@ whitelist_uid() {
   fi
 }
 
-whitelist_array_interval() {
+uid_interval4tun() {
   previous=$start
   for uid in $uids; do
     if [ "$((uid - 1))" -ge "$previous" ]; then
@@ -169,13 +169,13 @@ whitelist_array_interval() {
   fi
 }
 
-whitelist_rules() {
+package_rules4tun() {
   local action=${1}
-  whitelist_uid
+  uid_filter4tun
 
   ranges=()
 
-  output=$(whitelist_array_interval)
+  output=$(uid_interval4tun)
 
   if [ ${#package_list[@]} -gt 0 ]; then
     for range in $output; do
@@ -198,7 +198,7 @@ whitelist_rules() {
   fi
 }
 
-uid_filter() {
+uid_interval() {
   [ -f "${scripts_dir}/uids.list" ] && rm "${scripts_dir}/uids.list"
   uid=""
   uids=()
@@ -460,7 +460,7 @@ start_tun() {
     [ -n "${pid}" ] && log Info "add xray pid: ${pid}" >>"${parent_dir}/log/run.log"
     am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "TUN已开启" >/dev/null 2>&1
     log Info "Create a new process $(pidof ${bin_box})"
-    whitelist_rules add
+    package_rules4tun add
   else
     log Error "Binary ${bin_box} not found"
     am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "${bin_box##*/} not found" >/dev/null 2>&1
@@ -475,7 +475,7 @@ stop_tun() {
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
   log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
   forward -D
-  whitelist_rules del
+  package_rules4tun del
   pid=$(pidof sing-box 2>/dev/null)
   [ -n "${pid}" ] && log Info "del sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
   pid=$(pidof xray 2>/dev/null)
@@ -498,7 +498,7 @@ start_tproxy() {
       log Info "---restart---" >"${parent_dir}/log/run.log"
     fi
     log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
-    uid_filter
+    uid_interval
     run_iptables_rules
     run_disable_quic
     ulimit -SHn 1000000
