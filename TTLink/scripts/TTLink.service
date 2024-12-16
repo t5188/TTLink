@@ -235,13 +235,21 @@ iptables_rules() {
     done
   fi
 
+  if [ -n "${AIDs}" ]; then
+    for AID in ${AIDs[*]}; do
+      ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p tcp -j MARK --set-mark ${fwmark}
+      ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p udp -j MARK --set-mark ${fwmark}
+    done
+  fi
+
   case "${proxy_mode}" in
   "blacklist")
     if [ ${#uids[@]} -gt 0 ]; then
       for appid in ${6}; do
-        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} ! --dport 53 -j RETURN
-        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -j RETURN
+        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p tcp ! --dport 53 -j RETURN
+        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p udp ! --dport 53 -j RETURN
       done
+      ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
     else
       # When the blacklist array is empty, route all traffic through the proxy.
       ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
@@ -253,12 +261,6 @@ iptables_rules() {
         ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p tcp -j MARK --set-mark ${fwmark}
         ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p udp -j MARK --set-mark ${fwmark}
       done
-      if [ -n "${AIDs}" ]; then
-        for AID in ${AIDs[*]}; do
-          ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p tcp -j MARK --set-mark ${fwmark}
-          ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p udp -j MARK --set-mark ${fwmark}
-        done
-      fi
     else
       # When the whitelist array is empty, route all traffic through the proxy.
       ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
@@ -438,7 +440,7 @@ start_tun() {
     chmod 755 ${bin_box}
     chown root:net_admin ${bin_box}
     chmod o+rw ${public_log_dir}
-    find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null	
+    find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     forward -I
     chmod 755 ${bin_xray}
@@ -459,7 +461,7 @@ start_tun() {
 }
 
 stop_tun() {
-  if { ! pidof ${bin_box} && ! pidof ${bin_xray} ;} >/dev/null 2>&1; then
+  if { ! pidof ${bin_box} && ! pidof ${bin_xray}; } >/dev/null 2>&1; then
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
@@ -516,7 +518,7 @@ start_tproxy() {
 
 # Function to stop the proxy
 stop_tproxy() {
-  if { ! pidof ${bin_box} && ! pidof ${bin_xray} ;} >/dev/null 2>&1; then
+  if { ! pidof ${bin_box} && ! pidof ${bin_xray}; } >/dev/null 2>&1; then
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
