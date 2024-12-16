@@ -126,27 +126,28 @@ forward() {
 }
 
 whitelist_uid() {
-  if [ -f "$scripts_dir/uids.list" ]; then
-    rm "$scripts_dir/uids.list"
+  if [ -f "${scripts_dir}/uids.list" ]; then
+    rm "${scripts_dir}/uids.list"
   fi
 
   for package_name in "${package_list[@]}"; do
     uid=$(busybox awk -v package="$package_name" '$1 == package {print $2}' /data/system/packages.list)
     if [ ! -z "$uid" ]; then
-      echo "$uid" >>"$scripts_dir/uids.list"
-      # echo "$uid:$package_name" >> "$scripts_dir/uids1.list"
+      echo "$uid" >>"${scripts_dir}/uids.list"
+      # echo "$uid:$package_name" >> "${scripts_dir}/uids1.list"
     fi
   done
-  sort -n "$scripts_dir/uids.list" | uniq >"$scripts_dir/uids.list.tmp"
-  mv "$scripts_dir/uids.list.tmp" "$scripts_dir/uids.list"
+  sort -n "${scripts_dir}/uids.list" | uniq >"${scripts_dir}/uids.list.tmp"
+  mv "${scripts_dir}/uids.list.tmp" "${scripts_dir}/uids.list"
+  uids=$(cat "${scripts_dir}/uids.list")
 }
 
 whitelist_array() {
   start=0
   end=999999
 
-  if [ -f "$scripts_dir/uids.list" ]; then
-    uids=$(cat "$scripts_dir/uids.list")
+  if [ -f "${scripts_dir}/uids.list" ]; then
+    uids=$(cat "${scripts_dir}/uids.list")
   else
     echo "$start-$end"
     return
@@ -179,17 +180,17 @@ whitelist_rules() {
     done
   fi
 
-  if [[ "${proxy_mode}" == "whitelist" ]] && [ ${#ranges[@]} -gt 0 ]; then
-    for range in "${ranges[@]}"; do
-      echo "${action} from all uidrange ${range} priority 9000 goto 9010"
-      ip -4 rule ${action} from all uidrange ${range} priority 9000 goto 9010
-      ip -6 rule ${action} from all uidrange ${range} priority 9000 goto 9010
+  if [[ "${proxy_mode}" == "whitelist" ]] && [ "${#ranges[@]}" -gt 0 ]; then
+    for whiteapp in "${ranges[@]}"; do
+      echo "[Whitelist] ${action} from all uidrange ${whiteapp} priority 9000 goto 9010"
+      ip -4 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
+      ip -6 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
     done
-  elif [[ "${proxy_mode}" == "blacklist" ]] && [ ${#ranges[@]} -gt 0 ]; then
-    for range in "${blacklist[@]}"; do
-      echo "${action} from all uidrange ${range} priority 9000 goto 9010"
-      ip -4 rule ${action} from all uidrange ${range} priority 9000 goto 9010
-      ip -6 rule ${action} from all uidrange ${range} priority 9000 goto 9010
+  elif [[ "${proxy_mode}" == "blacklist" ]] && [ "${#uids[@]}" -gt 0 ]; then
+    for blackapp in "${uids[@]}"; do
+      echo "[Blacklist] ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010"
+      ip -4 rule ${action} from all uidrange "${blackapp}-${blackapp}" priority 9000 goto 9010
+      ip -6 rule ${action} from all uidrange "${blackapp}-${blackapp}" priority 9000 goto 9010
     done
   else
     return
@@ -202,7 +203,7 @@ uid_filter() {
   uids=()
   for package_name in ${package_list[@]}; do
     uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
-    [ -n "${uid}" ] && uids+=("${uid}") && \
+    [ -n "${uid}" ] && uids+=("${uid}") &&
       echo "${package_name}: ${uid}" >>${scripts_dir}/uids.list
   done
 }
