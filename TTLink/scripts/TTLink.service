@@ -125,88 +125,71 @@ forward() {
   iptables_rules4tun "ip6tables" "${action}"
 }
 
-uid_filter4tun() {
-  start=0
-  end=999999
+initialize_uids() {
+  uid=""
+  uids=()
 
   if [ -f "${scripts_dir}/uids.list" ]; then
     rm "${scripts_dir}/uids.list"
   fi
 
-  for package_name in "${package_list[@]}"; do
-    uid=$(busybox awk -v package="$package_name" '$1 == package {print $2}' /data/system/packages.list)
-    if [ ! -z "$uid" ]; then
-      echo "$uid" >>"${scripts_dir}/uids.list"
-      # echo "$uid:$package_name" >> "${scripts_dir}/uids1.list"
-    fi
+  for package_name in ${package_list[@]}; do
+    uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
+    [ -n "${uid}" ] && uids+=("${uid}") &&
+      echo "${package_name}: ${uid}" >>${scripts_dir}/uids.list
   done
+
+  uids+=("${box_user}" "${xray_user}")
+  uids=($(printf "%s\n" "${uids[@]}" | sort -n))
 
   echo "${box_user}" >>"${scripts_dir}/uids.list"
   echo "${xray_user}" >>"${scripts_dir}/uids.list"
-
-  sort -n "${scripts_dir}/uids.list" | uniq >"${scripts_dir}/uids.list.tmp"
-  mv "${scripts_dir}/uids.list.tmp" "${scripts_dir}/uids.list"
-
-  if [ -f "${scripts_dir}/uids.list" ]; then
-    uids=$(cat "${scripts_dir}/uids.list") # Non-array
-  else
-    echo "$start-$end"
-    return
-  fi
 }
 
-uid_interval4tun() {
+uid_intervals() { # 12345-22345 22346-32346
+  initialize_uids
+
+  start=0
+  end=999999
+
+  if [ "${#uids[@]}" -eq 0 ]; then
+    echo "${start}-${end}"
+    return
+  fi
+
   previous=$start
-  for uid in $uids; do
-    if [ "$((uid - 1))" -ge "$previous" ]; then
-      echo "$previous-$((uid - 1))"
+  for uid in "${uids[@]}"; do
+    if [ "$((uid - 1))" -ge "${previous}" ]; then
+      echo "${previous}-$((uid - 1))"
     fi
     previous=$((uid + 1))
   done
 
-  if [ "$previous" -le "$end" ]; then
-    echo "$previous-$end"
+  if [ "${previous}" -le "${end}" ]; then
+    echo "${previous}-${end}"
   fi
 }
 
 package_rules4tun() {
   local action=${1}
-  uid_filter4tun
 
-  ranges=()
+  stdout2array=()
 
-  output=$(uid_interval4tun)
+  stdout2array=($(uid_intervals)) # Save the standard output of uid_intervals into an array.
 
-  if [ ${#package_list[@]} -gt 0 ]; then
-    for range in $output; do
-      ranges+=("$range")
-    done
-  fi
-
-  if [[ "${proxy_mode}" == "whitelist" ]] && [ "${#ranges[@]}" -gt 0 ]; then
-    for whiteapp in "${ranges[@]}"; do
+  if [[ "${proxy_mode}" == "whitelist" ]] && [ "${#stdout2array[@]}" -gt 0 ]; then
+    for whiteapp in "${stdout2array[@]}"; do
       ip -4 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
     done
-  elif [[ "${proxy_mode}" == "blacklist" ]] && [[ -n "${uids}" ]]; then
-    for blackapp in ${uids}; do # Non-array, the variable cannot have quotes around it.
+  elif [[ "${proxy_mode}" == "blacklist" ]] && [[ ${#uids[@]} -gt 0 ]]; then
+    for blackapp in "${uids[@]}"; do
       ip -4 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
     done
   else
     return
   fi
-}
-
-uid_interval() {
-  [ -f "${scripts_dir}/uids.list" ] && rm "${scripts_dir}/uids.list"
-  uid=""
-  uids=()
-  for package_name in ${package_list[@]}; do
-    uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
-    [ -n "${uid}" ] && uids+=("${uid}") && \
-      echo "${package_name}: ${uid}" >>${scripts_dir}/uids.list
-  done
 }
 
 # Function to create TPROXY rules
@@ -498,7 +481,7 @@ start_tproxy() {
       log Info "---restart---" >"${parent_dir}/log/run.log"
     fi
     log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
-    uid_interval
+    initialize_uids
     run_iptables_rules
     run_disable_quic
     ulimit -SHn 1000000
