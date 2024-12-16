@@ -144,7 +144,7 @@ initialize_uids() {
   if [[ "${proxy_mode}" == "blacklist" ]]; then
     uids+=("${box_user}" "${xray_user}")
   fi
-  uids=($(printf "%s\n" "${uids[@]}" | sort -n))
+  uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
 }
 
 uid_intervals() { # Output UID ranges, e.g., 12345-22345 22346-32346
