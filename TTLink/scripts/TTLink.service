@@ -179,8 +179,14 @@ whitelist_rules() {
     done
   fi
 
-  if [ ${#ranges[@]} -gt 0 ]; then
+  if [[ "${proxy_mode}" == "whitelist" ]] && [ ${#ranges[@]} -gt 0 ]; then
     for range in "${ranges[@]}"; do
+      echo "${action} from all uidrange ${range} priority 9000 goto 9010"
+      ip -4 rule ${action} from all uidrange ${range} priority 9000 goto 9010
+      ip -6 rule ${action} from all uidrange ${range} priority 9000 goto 9010
+    done
+  elif [[ "${proxy_mode}" == "blacklist" ]] && [ ${#ranges[@]} -gt 0 ]; then
+    for range in "${blacklist[@]}"; do
       echo "${action} from all uidrange ${range} priority 9000 goto 9010"
       ip -4 rule ${action} from all uidrange ${range} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${range} priority 9000 goto 9010
