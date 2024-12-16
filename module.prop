@@ -1,7 +1,7 @@
 id=TTLink
 name=TTLink
-version=v0.5
-versionCode=20241216
+version=v1.0
+versionCode=20241217
 author=Tony
-description=Tproxy and tun; Created on 12 16, 2024.
+description=Tproxy and tun; Created on 12 17, 2024.
 updateJson=https://github.com/t5188/TTLink/raw/main/update.json

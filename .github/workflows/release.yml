@@ -1,4 +1,4 @@
-name: TTLink-v0.5
+name: TTLink-v1.0
 
 on:
   workflow_dispatch:

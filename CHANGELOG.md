@@ -1,4 +1,4 @@
-# Version 0.5
+# Version 1.0
 
 ## 更新说明
 
@@ -6,9 +6,4 @@
 
 - 修复黑名单
 
-## update Notes
-
-This version includes the following:
-
-- Fix blacklist
-
+- 黑白名单为空时代理整个手机流量
