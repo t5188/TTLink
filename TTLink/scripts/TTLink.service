@@ -239,10 +239,9 @@ iptables_rules() {
   "blacklist")
     if [ ${#uids[@]} -gt 0 ]; then
       for appid in ${6}; do
-        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p tcp -j RETURN
-        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p udp ! --dport 53 -j RETURN
+        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} ! --dport 53 -j RETURN
+        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -j RETURN
       done
-      ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
     else
       # When the blacklist array is empty, route all traffic through the proxy.
       ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
