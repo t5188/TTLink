@@ -141,7 +141,7 @@ initialize_uids() {
     fi
   done
   # Add box_user and xray_user to the uids array, then sort it
-  if [[ "${proxy_mode}" == "blacklist" ]]; then
+  if [[ "${proxy_mode}" == "blacklist" ]] && [[ "${network_mode}" == "tun" ]]; then
     uids+=("${box_user}" "${xray_user}")
   fi
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
@@ -175,7 +175,7 @@ package_rules4tun() {
   local action=${1}
   stdout2array=()
   # If in whitelist mode and stdout2array is not empty
-  if [[ "${proxy_mode}" == "whitelist" ]] && [ "${#package_list[@]}" -gt 0 ]; then
+  if [[ "${proxy_mode}" == "whitelist" ]] && [ "${#package_list[@]}" -ge 0 ]; then
     # Get the UID range output
     stdout2array=($(uid_intervals))
     for whiteapp in "${stdout2array[@]}"; do
@@ -183,7 +183,7 @@ package_rules4tun() {
       ip -6 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
     done
   # If in blacklist mode and uids is not empty
-  elif [[ "${proxy_mode}" == "blacklist" ]] && [ "${#package_list[@]}" -gt 0 ]; then
+  elif [[ "${proxy_mode}" == "blacklist" ]] && [ "${#package_list[@]}" -ge 0 ]; then
     # Get the UID output
     initialize_uids
     for blackapp in "${uids[@]}"; do
