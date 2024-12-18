@@ -1,0 +1,51 @@
+name: Build yq Android
+
+on:
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  build:
+    name: Build yq for Android
+    runs-on: ubuntu-latest  # 使用 Ubuntu 最新版本的运行环境
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取完整的 Git 历史
+
+    - name: Clone yq repository
+      run: git clone https://github.com/mikefarah/yq.git  # 克隆 yq 仓库
+
+    - name: Set up Go environment
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'  # 使用 Go 1.21
+
+    - name: Set up Android NDK
+      uses: nttld/setup-ndk@v1
+      id: setup-ndk
+      with:
+        ndk-version: r25b
+        add-to-path: false
+        local-cache: false
+
+    - name: Get dependencies
+      run: |
+        cd yq  # 进入到 yq 仓库目录
+        go get -v -t -d ./...  # 获取 Go 依赖包
+
+    - name: Build yq for Android
+      env:
+        ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+      run: |
+        cd yq  # 进入 yq 项目目录
+        mkdir -p bin
+        CC=${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin
+        # 编译适用于 ARM64 架构的二进制文件
+        CGO_ENABLED=1 CC=${CC}/aarch64-linux-android33-clang GOARCH=arm64 GOOS=android go build -tags yq_toml -tags yq_xml -tags yq_json -ldflags "-s -w" -o bin/yq_android_arm64
+
+    - name: Move yq binary to TTLink directory
+      run: |
+        mkdir -p TTLink/binary  # 确保目标目录存在
+        mv yq/bin/yq_android_arm64 TTLink/binary/yq  # 移动并覆盖文件
