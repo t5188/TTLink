@@ -107,9 +107,35 @@ echo "    \"rule_set\": [\n$config_content\n    ]," > template.json
 echo -e "${green}使用template.json文件内容粘贴到配置文件对应位置即可。${normal}"
 }
 
+RemoteGeoSrs() {
+for site_name in "${sitename[@]}"; do
+config_content+="      {
+        \"type\": \"remote\",
+        \"tag\": \"geosite-${site_name}\",
+        \"format\": \"binary\",
+        \"url\": \"https://srs.acstudycn.eu.org/geosite/${site_name}.srs\",
+        \"download_detour\": \"out-direct\"
+      },\n"
+done
+
+for ip_name in "${ipname[@]}"; do
+config_content+="      {
+        \"type\": \"remote\",
+        \"tag\": \"geoip-${ip_name}\",
+        \"format\": \"binary\",
+        \"url\": \"https://srs.acstudycn.eu.org/geoip/${ip_name}.srs\",
+        \"download_detour\": \"out-direct\"
+      },\n"
+done
+
+config_content=${config_content%,\\n}
+echo "    \"rule_set\": [\n$config_content\n    ]," > template.json
+echo -e "${green}使用template.json文件内容粘贴到配置文件对应位置即可。${normal}"
+}
+
 DownloadMakeMove() {
   echo "请选择一个下载操作："
-  select option in "DownloadGeoDb" "DownloadGeoSrs" "退出"
+  select option in "DownloadGeoDb" "DownloadGeoSrs" "RemoteGeoSrs" "退出"
   do
     case $option in
       "DownloadGeoDb")
@@ -125,6 +151,11 @@ DownloadMakeMove() {
       "DownloadGeoSrs")
         echo -e "你选择了下载 GeoSrs，正在下载...${green}"
         DownloadGeoSrs
+        break
+        ;;
+      "RemoteGeoSrs")
+        echo -e "你选择了编辑 RemoteGeoSrs，正在编辑...${green}"
+        RemoteGeoSrs
         break
         ;;
       "退出")
