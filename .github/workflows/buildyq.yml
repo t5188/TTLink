@@ -45,7 +45,17 @@ jobs:
         # 编译适用于 ARM64 架构的二进制文件
         CGO_ENABLED=1 CC=${CC}/aarch64-linux-android33-clang GOARCH=arm64 GOOS=android go build -tags yq_toml -tags yq_xml -tags yq_json -ldflags "-s -w" -o bin/yq_android_arm64
 
-    - name: Move yq binary to TTLink directory
+    - name: Copy yq binary to TTLink directory
       run: |
         mkdir -p TTLink/binary  # 确保目标目录存在
         mv yq/bin/yq_android_arm64 TTLink/binary/yq  # 移动并覆盖文件
+
+    - name: Commit and push changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add TTLink/binary/yq
+        git commit -m "Update yq binary for Android"
+        git push origin main  # 推送到 main 分支
