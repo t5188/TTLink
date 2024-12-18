@@ -48,7 +48,11 @@ jobs:
     - name: Copy yq binary to TTLink directory
       run: |
         mkdir -p TTLink/binary  # 确保目标目录存在
-        mv yq/bin/yq_android_arm64 TTLink/binary/yq  # 移动并覆盖文件
+        mv yq/bin/yq_android_arm64 TTLink/binary/yq  # 移动并重命名文件
+
+    - name: Debug output files
+      run: |
+        ls -l TTLink/binary/yq  # 确保文件已正确移动并显示详情
 
     - name: Commit and push changes
       env:
@@ -56,6 +60,7 @@ jobs:
       run: |
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
-        git add TTLink/binary/yq
-        git commit -m "Update yq binary for Android"
+        git add TTLink/binary/yq  # 强制添加新文件或覆盖的文件
+        git status  # 检查文件是否已添加
+        git commit -m "Update yq binary for Android" || echo "No changes to commit"  # 防止无更改时报错
         git push origin main  # 推送到 main 分支
