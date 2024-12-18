@@ -1,0 +1,46 @@
+name: Update Xray for Android
+
+on:
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  update-xray-android:
+    name: Update Xray for Android
+    runs-on: ubuntu-latest  # 使用 Ubuntu 最新版本的运行环境
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取完整的 Git 历史
+
+    - name: Download latest Xray release for Android (including prerelease)
+      run: |
+        # 获取最新版本（包含 prerelease）的发布信息
+        LATEST_URL=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | \
+          jq -r '.[] | select(.prerelease or .draft | not) | .assets[] | select(.name | contains("android-arm64-v8a.zip")) | .browser_download_url' | head -n 1)
+
+        if [ -z "$LATEST_URL" ]; then
+          echo "No valid Xray Android version found!"
+          exit 1
+        fi
+
+        echo "Latest Xray download URL: $LATEST_URL"
+        # 下载到临时目录
+        curl -L -o xray_android.zip $LATEST_URL
+        # 解压到临时目录
+        unzip xray_android.zip -d xray_android
+        # 确保目标目录存在
+        mkdir -p TTLink/binary
+        # 移动 Xray 主程序到目标目录，并覆盖已有文件
+        mv xray_android/xray TTLink/binary/xray-android
+
+    - name: Commit and push changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add TTLink/binary/xray-android
+        git commit -m "Update Xray for Android to the latest version (prerelease included)"
+        git push origin main  # 推送到 main 分支
