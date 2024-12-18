@@ -1,4 +1,4 @@
-name: Trigger Other Workflows
+name: autoup
 
 on:
   schedule:

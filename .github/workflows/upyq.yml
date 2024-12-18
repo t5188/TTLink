@@ -1,4 +1,4 @@
-name: Build yq Android
+name: Build yq
 
 on:
   workflow_dispatch:  # 支持手动触发
