@@ -1,4 +1,4 @@
-name: TTLink-v1.0
+name: Build TTL
 
 on:
   workflow_dispatch:
