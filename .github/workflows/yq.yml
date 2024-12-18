@@ -1,14 +1,14 @@
 name: Build latest yq for Android
 
 on:
-  workflow_dispatch: # 手动触发工作流
+  workflow_dispatch: # 允许手动触发工作流
 
 jobs:
   build-yq:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: 拉取 yq 源代码（始终拉取最新代码）
+      # Step 1: 拉取最新的 yq 源代码
       - name: Checkout yq source code
         run: |
           git clone https://github.com/mikefarah/yq.git
@@ -17,7 +17,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.20" # 确保使用较新的 Go 版本
+          go-version: '1.20'  # 使用适用的 Go 版本
 
       # Step 3: 编译 yq 为适合 Android 的二进制文件
       - name: Build yq for Android (ARM64)
@@ -32,7 +32,7 @@ jobs:
           mv yq artifacts/
           tar -czvf yq-android-arm64.tar.gz -C artifacts yq
 
-      # Step 5: 上传编译的二进制文件
+      # Step 5: 上传编译文件
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
