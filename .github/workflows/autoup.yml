@@ -3,7 +3,7 @@ name: Trigger Other Workflows
 on:
   schedule:
     # 每天 UTC 0点触发（您可以根据需要调整时间）
-    - cron: '0 0 * * *'
+    - cron: '1/* * * * *'
 
 jobs:
   trigger:
