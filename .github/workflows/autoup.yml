@@ -23,10 +23,3 @@ jobs:
         repository: t5188/TTLink
         workflow: upyq.yml  # 替换为您的第二个工作流文件名
         ref: main
-
-    - name: Trigger workflow 3
-      uses: peter-evans/workflow-dispatch@v1
-      with:
-        repository: t5188/TTLink
-        workflow: up.yml  # 替换为您的第三个工作流文件名
-        ref: main
