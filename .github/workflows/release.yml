@@ -1,4 +1,4 @@
-name: build TTL
+name: Build TTL
 
 on:
   workflow_dispatch:
