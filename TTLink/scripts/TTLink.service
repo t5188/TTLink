@@ -27,7 +27,6 @@ disable_ipv6() {
   echo 1 >/proc/sys/net/ipv6/conf/all/disable_ipv6
   echo 1 >/proc/sys/net/ipv6/conf/default/disable_ipv6
   echo 1 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
-  log Info "ipv6: disable" >>"${parent_dir}/log/run.log"
 }
 
 enable_ipv6() {
@@ -36,7 +35,6 @@ enable_ipv6() {
   echo 0 >/proc/sys/net/ipv6/conf/all/disable_ipv6
   echo 0 >/proc/sys/net/ipv6/conf/default/disable_ipv6
   echo 0 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
-  log Info "ipv6: enable" >>"${parent_dir}/log/run.log"
 }
 
 device_index() {
@@ -56,8 +54,6 @@ device_index() {
     echo "${index} ${device}" >${scripts_dir}/tables.tmp
   fi
   read index device <"${scripts_dir}/tables.tmp"
-  log Info "device: ${device}" >>${parent_dir}/log/run.log
-  log Info "index: $index" >>${parent_dir}/log/run.log
 }
 
 ip_rules() {
@@ -76,7 +72,6 @@ ip_rules() {
   )
   for rule in "${ipv4_rules[@]}"; do
     ip -4 rule "${action}" ${rule}
-    log Info "ip -4 rule ${action} ${rule}" >>${parent_dir}/log/run.log
   done
 
   ipv6_rules=(
@@ -92,7 +87,6 @@ ip_rules() {
   )
   for rule in "${ipv6_rules[@]}"; do
     ip -6 rule "${action}" ${rule}
-    log Info "ip -6 rule ${action} ${rule}" >>${parent_dir}/log/run.log
   done
 }
 
@@ -145,7 +139,6 @@ dns_rules4tun() {
     if [[ "${action}" == "-D" ]]; then
       ${iptables} -t mangle -F ${name}
       ${iptables} -t mangle -X ${name}
-      log Info "${name} rule has been removed" >>"${parent_dir}/log/run.log"
     fi
 
   else
@@ -335,9 +328,7 @@ iptables_rules() {
 run_iptables_rules() {
   log Info "tp_port: ${tp_port}" >>"${parent_dir}/log/run.log"
   iptables_rules ip "${table}" "${IPV}" "${chain_name}" "${intranet[*]}" "${uids[*]}"
-  if [[ "${ip6tables_switch}" == "true" ]]; then
-    iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6" "${intranet6[*]}" "${uids[*]}"
-  fi
+  iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6" "${intranet6[*]}" "${uids[*]}"
 }
 
 # Function to delete iptables rules
@@ -388,9 +379,7 @@ del_iptables_rules() {
 # Function to execute delete proxy rules
 run_del_iptables_rules() {
   del_iptables_rules ip "${table}" "${IPV}" "${chain_name}"
-  if [[ "${ip6tables_switch}" == "true" ]]; then
-    del_iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6"
-  fi
+  del_iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6"
 }
 
 # Function to create task
@@ -433,18 +422,14 @@ disable_quic() {
 run_disable_quic() {
   if [[ "${quic}" == "disable" ]]; then
     disable_quic "${IPV}" "-I"
-    if [[ "${ip6tables_switch}" == "true" ]]; then
-      disable_quic "${IP6V}" "-I"
-    fi
+    disable_quic "${IP6V}" "-I"
   fi
 }
 
 del_disable_quic() {
   if [[ "${quic}" == "disable" ]]; then
     disable_quic "${IPV}" "-D"
-    if [[ "${ip6tables_switch}" == "true" ]]; then
-      disable_quic "${IP6V}" "-D"
-    fi
+    disable_quic "${IP6V}" "-D"
   fi
 }
 
