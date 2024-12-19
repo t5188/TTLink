@@ -39,10 +39,10 @@ enable_ipv6() {
   log Info "ipv6: enable" >>"${parent_dir}/log/run.log"
 }
 
-ip_rules() {
+device_index() {
   local max_retries=5
   local retry_count=0
-  local index=""
+  index=""
   if [ ! -f "${scripts_dir}/tables.tmp" ]; then
     device=$(awk -F'"' '/"interface_name"/ {print $4; exit}' ${box_confs_dir}/*.json)
     while [ -z "$index" ] && [ $retry_count -lt $max_retries ]; do
@@ -58,7 +58,10 @@ ip_rules() {
   read index device <"${scripts_dir}/tables.tmp"
   log Info "device: ${device}" >>${parent_dir}/log/run.log
   log Info "index: $index" >>${parent_dir}/log/run.log
+}
 
+ip_rules() {
+  device_index
   local action=$1
   ipv4_rules=(
     "iif lo goto 6000 pref 5000"
@@ -110,6 +113,54 @@ iptables_rules4tun() {
   # quic
   ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
   ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
+}
+
+dns_rules4tun() {
+  device_index
+  local name="DNS2TUN"
+  local ip=${1}
+  local iptables=${2}
+  local action=${3}
+  if [[ "${network_mode}" == "tun" ]]; then
+
+    if [[ "${action}" == "-A" ]]; then
+      local action1="add"
+    elif [[ "${action}" == "-D" ]]; then
+      local action1="del"
+    fi
+
+    ${ip} rule ${action1} fwmark 0x1 table ${index} pref 8100
+    ${ip} route ${action1} default dev ${device} table ${index}
+
+    if [ "${action}" != "-D" ]; then
+      ${iptables} -t mangle -N ${name}
+      ${iptables} -t mangle -F ${name}
+      ${iptables} -t mangle ${action} ${name} -p udp --dport 53 -j MARK --set-mark 1
+      ${iptables} -t mangle ${action} ${name} -p tcp --dport 53 -j MARK --set-mark 1
+    fi
+
+    ${iptables} -t mangle ${action} OUTPUT -j ${name}
+    ${iptables} -t mangle ${action} PREROUTING -j ${name}
+
+    if [ "${action}" = "-D" ]; then
+      ${iptables} -t mangle -F ${name}
+      ${iptables} -t mangle -X ${name}
+      log Info "${name} rule has been removed" >>"${parent_dir}/log/run.log"
+    fi
+
+  else
+    return
+  fi
+}
+
+execute_dns_rules4tun() {
+  dns_rules4tun "ip -4" "iptables" "-A"
+  dns_rules4tun "ip -6" "ip6tables" "-A"
+}
+
+remove_dns_rules4tun() {
+  dns_rules4tun "ip -4" "iptables" "-D"
+  dns_rules4tun "ip -6" "ip6tables" "-D"
 }
 
 forward() {
@@ -438,6 +489,7 @@ start_tun() {
     find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     forward -I
+    execute_dns_rules4tun
     chmod 755 ${bin_xray}
     chown root:net_admin ${bin_xray}
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
@@ -462,6 +514,7 @@ stop_tun() {
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
   log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
   forward -D
+  remove_dns_rules4tun
   package_rules4tun del
   pid=$(pidof sing-box 2>/dev/null)
   [ -n "${pid}" ] && log Info "del sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
