@@ -29,7 +29,7 @@ block_loopback() {
   local name=${3}
   local n=${4}
 
-  if [ "${action}" != "-D" ]; then
+  if [[ "${action}" != "-D" ]]; then
     ${iptables} -t mangle -N ${name}
     ${iptables} -t mangle -F ${name}
     if [[ "${n}" == "-4" ]]; then

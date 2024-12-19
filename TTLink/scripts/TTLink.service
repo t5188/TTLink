@@ -196,7 +196,7 @@ initialize_uids() {
   done
   sort -t ':' -k2 -n "${scripts_dir}/uids.list" -o "${scripts_dir}/uids.list"
   # Add box_user and xray_user to the uids array, then sort it
-  if [[ "${network_mode}" == "tun" ]] && [[ ${#package_list[@]} -eq 0 ]]; then
+  if [[ "${network_mode}" == "tun" && ${#package_list[@]} -eq 0 ]]; then
     uids+=("${box_user}" "${xray_user}")
   fi
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
@@ -210,7 +210,7 @@ uid_intervals() { # Output UID ranges, e.g., 12345-22345 22346-32346
   previous=$start
   for uid in "${uids[@]}"; do
     # If the current UID is greater than previous by 1, output the range
-    if [ "$((uid - 1))" -ge "${previous}" ]; then
+    if [[ $((uid - 1)) -ge $previous ]]; then
       echo "${previous}-$((uid - 1))"
     fi
     previous=$((uid + 1))
