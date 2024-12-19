@@ -10,25 +10,25 @@ settings_file=${scripts_dir}/settings.ini
 source ${scripts_dir}/settings.ini
 
 # 检查 yq 是否存在
-if [[ ! -f "$yq" ]]; then
+if [ ! -f "$yq" ]; then
   echo -e "${red}yq 工具未找到，请确保路径正确或安装 yq${normal}"
   exit 1
 fi
 
 # 检查 settings.ini 文件是否存在
-if [[ ! -f "$settings_file" ]]; then
+if [ ! -f "$settings_file" ]; then
   echo -e "${red}settings.ini 文件不存在，无法继续${normal}"
   exit 1
 fi
 
 # 检查 box_config.json 文件是否存在
-if [[ ! -f "$box_config_file" ]]; then
+if [ ! -f "$box_config_file" ]; then
   echo -e "${red}box_config.json 文件不存在，无法继续${normal}"
   exit 1
 fi
 
 # 代理模块禁用状态检查
-if [[ ! -f "${module_dir}/disable" ]]; then
+if [ ! -f "${module_dir}/disable" ]; then
   touch "${module_dir}/disable"
   echo -e "${red}代理软件暂时关闭，稍后自动开启${normal}"
 else
@@ -41,8 +41,7 @@ start_time=$(date +%s)
 # 循环，直到 sing-box 和 xray 两个进程都不再运行，或者超过 10 秒
 while true; do
   # 检查 sing-box 和 xray 进程是否正在运行
-  if ! pgrep -x "sing-box" >/dev/null && ! pgrep -x "xray" >/dev/null; then
-    echo "${red}Both sing-box and xray are not running. Breaking the loop.${normal}"
+  if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
     break
   fi
 
