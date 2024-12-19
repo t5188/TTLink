@@ -513,7 +513,6 @@ stop_tun() {
   find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
 }
 
-# Function to start the proxy
 start_tproxy() {
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
     log Info "---welcome---" >"${parent_dir}/log/run.log"
@@ -549,7 +548,6 @@ start_tproxy() {
   fi
 }
 
-# Function to stop the proxy
 stop_tproxy() {
   if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
     exit 1
