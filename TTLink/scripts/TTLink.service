@@ -532,7 +532,7 @@ stop_tun() {
 start_tproxy() {
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
     log Info "---welcome---" >"${parent_dir}/log/run.log"
-    if { pidof "${bin_box}" || pidof "${bin_xray}"; } >/dev/null 2>&1; then
+    if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
       log Info "Close existing processes"
       stop_tproxy
       log Info "---restart---" >"${parent_dir}/log/run.log"
@@ -566,7 +566,7 @@ start_tproxy() {
 
 # Function to stop the proxy
 stop_tproxy() {
-  if { ! pidof ${bin_box} && ! pidof ${bin_xray}; } >/dev/null 2>&1; then
+  if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
