@@ -129,7 +129,7 @@ dns_rules4tun() {
       local action1="del"
     fi
 
-    ${ip} rule ${action1} fwmark 0x1 table ${index} pref 7900
+    ${ip} rule ${action1} fwmark 0x1 table ${index} pref 7800
     ${ip} route ${action1} default dev ${device} table ${index}
 
     if [ "${action}" != "-D" ]; then
