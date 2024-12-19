@@ -469,15 +469,13 @@ start_tun() {
     fi
     log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
     ulimit -SHn 1000000
-    chmod 755 ${bin_box}
-    chown root:net_admin ${bin_box}
+    chmod 755 ${bin_box} ${bin_xray}
+    chown root:net_admin ${bin_box} ${bin_xray}
     chmod o+rw ${public_log_dir}
     find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     forward -I
     [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
-    chmod 755 ${bin_xray}
-    chown root:net_admin ${bin_xray}
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     pid=$(pidof sing-box 2>/dev/null)
     [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
@@ -527,13 +525,11 @@ start_tproxy() {
     run_iptables_rules
     run_disable_quic
     ulimit -SHn 1000000
-    chmod 755 ${bin_box}
-    chown root:net_admin ${bin_box}
+    chmod 755 ${bin_box} ${bin_xray}
+    chown root:net_admin ${bin_box} ${bin_xray}
     chmod o+rw ${public_log_dir}
     find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
-    chmod 755 ${bin_xray}
-    chown root:net_admin ${bin_xray}
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     pid=$(pidof sing-box 2>/dev/null)
     [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
