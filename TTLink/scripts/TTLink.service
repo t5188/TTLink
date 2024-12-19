@@ -468,6 +468,7 @@ start_tun() {
       log Info "---restart---" >"${parent_dir}/log/run.log"
     fi
     log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
+    ulimit -SHn 1000000
     chmod 755 ${bin_box}
     chown root:net_admin ${bin_box}
     chmod o+rw ${public_log_dir}
