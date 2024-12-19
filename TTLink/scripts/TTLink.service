@@ -216,7 +216,7 @@ uid_intervals() { # Output UID ranges, e.g., 12345-22345 22346-32346
     previous=$((uid + 1))
   done
   # If the last UID is less than end, output the final range
-  if [ "${previous}" -le "${end}" ]; then
+  if [[ $previous -le $end ]]; then
     echo "${previous}-${end}"
   fi
 }
@@ -508,7 +508,7 @@ start_tun() {
 }
 
 stop_tun() {
-  if { ! pidof ${bin_box} && ! pidof ${bin_xray}; } >/dev/null 2>&1; then
+  if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
