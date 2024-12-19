@@ -64,15 +64,15 @@ ip_rules() {
   device_index
   local action=$1
   ipv4_rules=(
-    "iif lo goto 6000 pref 5000"
-    "iif ${device} lookup main suppress_prefixlength 0 pref 5010"
-    "iif ${device} goto 6000 pref 5020"
-    "from 10.0.0.0/8 lookup ${index} pref 5030"
-    "from 172.16.0.0/12 lookup ${index} pref 5040"
-    "from 192.168.0.0/16 lookup ${index} pref 5050"
-    "nop pref 6000"
-    "lookup main pref 7000"
-    "from all iif ${device} lookup main suppress_prefixlength 0 pref 8000"
+    "iif lo goto 6000 priority 5000"
+    "iif ${device} lookup main suppress_prefixlength 0 priority 5010"
+    "iif ${device} goto 6000 priority 5020"
+    "from 10.0.0.0/8 lookup ${index} priority 5030"
+    "from 172.16.0.0/12 lookup ${index} priority 5040"
+    "from 192.168.0.0/16 lookup ${index} priority 5050"
+    "nop priority 6000"
+    "lookup main priority 7000"
+    "from all iif ${device} lookup main suppress_prefixlength 0 priority 8000"
   )
   for rule in "${ipv4_rules[@]}"; do
     ip -4 rule "${action}" ${rule}
@@ -80,15 +80,15 @@ ip_rules() {
   done
 
   ipv6_rules=(
-    "iif lo goto 6000 pref 5000"
-    "iif ${device} lookup main suppress_prefixlength 0 pref 5010"
-    "iif ${device} goto 6000 pref 5020"
-    # "from 2001:db8::/32 lookup ${index} pref 5030"
-    # "from fc00::/7 lookup ${index} pref 5040"
-    # "from fd00::/8 lookup ${index} pref 5050"
-    "nop pref 6000"
-    "lookup main pref 7000"
-    "from all iif ${device} lookup main suppress_prefixlength 0 pref 8000"
+    "iif lo goto 6000 priority 5000"
+    "iif ${device} lookup main suppress_prefixlength 0 priority 5010"
+    "iif ${device} goto 6000 priority 5020"
+    # "from 2001:db8::/32 lookup ${index} priority 5030"
+    # "from fc00::/7 lookup ${index} priority 5040"
+    # "from fd00::/8 lookup ${index} priority 5050"
+    "nop priority 6000"
+    "lookup main priority 7000"
+    "from all iif ${device} lookup main suppress_prefixlength 0 priority 8000"
   )
   for rule in "${ipv6_rules[@]}"; do
     ip -6 rule "${action}" ${rule}
@@ -129,7 +129,7 @@ dns_rules4tun() {
       local action1="del"
     fi
 
-    ${ip} rule ${action1} fwmark 53 table ${index} pref 100
+    ${ip} rule ${action1} fwmark 53 table ${index} priority 100
     ${ip} route ${action1} default dev ${device} table ${index}
 
     if [ "${action}" != "-D" ]; then
@@ -249,7 +249,7 @@ package_rules4tun() {
 
 # Function to create TPROXY rules
 iptables_rules() {
-  ${1} rule add fwmark "${fwmark}" table ${2} pref $((${2} * 10))
+  ${1} rule add fwmark "${fwmark}" table ${2} priority $((${2} * 10))
   ${1} route add local default dev lo table ${2}
   # Create custom chain
   ${3} -t mangle -N ${4}_EXTERNAL
@@ -342,7 +342,7 @@ run_iptables_rules() {
 
 # Function to delete iptables rules
 del_iptables_rules() {
-  ${1} rule del fwmark "${fwmark}" table ${2} pref $((${2} * 10))
+  ${1} rule del fwmark "${fwmark}" table ${2} priority $((${2} * 10))
   ${1} route del local default dev lo table ${2}
   ${1} route flush table ${2}
 
