@@ -477,7 +477,7 @@ run_description() {
 start_tun() {
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
     log Info "---welcome---" >"${parent_dir}/log/run.log"
-    if { pidof "${bin_box}" || pidof "${bin_xray}"; } >/dev/null 2>&1; then
+    if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
       log Info "Close existing processes"
       stop_tun
       log Info "---restart---" >"${parent_dir}/log/run.log"
