@@ -376,13 +376,11 @@ del_iptables_rules() {
   done
 }
 
-# Function to execute delete proxy rules
 run_del_iptables_rules() {
   del_iptables_rules ip "${table}" "${IPV}" "${chain_name}"
   del_iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6"
 }
 
-# Function to create task
 cron_task() {
   if [[ "${crond_task}" == "true" ]]; then
     crontab_file="${scripts_dir}/root"
@@ -397,7 +395,6 @@ cron_task() {
   fi
 }
 
-# Function to delete task
 del_task() {
   if pgrep busybox crond >/dev/null; then
     kill -9 $(pgrep busybox crond)
@@ -405,15 +402,14 @@ del_task() {
   fi
 }
 
-# Disable QUIC
 quic="disable"
 
 disable_quic() {
-  ${1} ${2} OUTPUT -p udp --dport 443 -m owner ! --gid-owner ${box_group} -j REJECT
-  ${1} ${2} OUTPUT -p udp --dport 80 -m owner ! --gid-owner ${box_group} -j REJECT
+  ${1} ${2} OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
+  ${1} ${2} OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
   if [[ "${2}" == "-D" ]]; then
-    while ${1} -C OUTPUT -p udp --dport 443 -m owner ! --gid-owner ${box_group} -j REJECT ||
-      ${1} -C OUTPUT -p udp --dport 80 -m owner ! --gid-owner ${box_group} -j REJECT; do
+    while ${1} -C OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT ||
+      ${1} -C OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT; do
       del_disable_quic
     done
   fi
