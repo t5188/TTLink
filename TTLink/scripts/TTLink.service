@@ -129,14 +129,14 @@ dns_rules4tun() {
       local action1="del"
     fi
 
-    ${ip} rule ${action1} fwmark 0x1 table ${index} pref 6900
+    ${ip} rule ${action1} fwmark 53 table ${index} pref 6900
     ${ip} route ${action1} default dev ${device} table ${index}
 
     if [ "${action}" != "-D" ]; then
       ${iptables} -t mangle -N ${name}
       ${iptables} -t mangle -F ${name}
-      ${iptables} -t mangle ${action} ${name} -p udp --dport 53 -j MARK --set-mark 1
-      ${iptables} -t mangle ${action} ${name} -p tcp --dport 53 -j MARK --set-mark 1
+      ${iptables} -t mangle ${action} ${name} -p udp --dport 53 -j MARK --set-mark 53
+      ${iptables} -t mangle ${action} ${name} -p tcp --dport 53 -j MARK --set-mark 53
     fi
 
     ${iptables} -t mangle ${action} OUTPUT -j ${name}
