@@ -11,7 +11,7 @@ source "${scripts_dir}/TTLink.service"
 cd ${scripts_dir}
 
 proxy_service() {
-  if [ ! -f "${module_dir}/disable" ]; then
+  if [[ ! -f "${module_dir}/disable" ]]; then
     log Info "Module Enabled"
     log Info "Start TTLink"
     ${scripts_dir}/TTLink.service enable >/dev/null 2>&1 &&
@@ -23,7 +23,7 @@ proxy_service() {
 }
 
 net_inotifyd() {
-  while [ ! -f /data/misc/net/rt_tables ]; do
+  while [[ ! -f /data/misc/net/rt_tables ]]; do
     sleep 3
   done
 

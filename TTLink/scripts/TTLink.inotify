@@ -5,17 +5,17 @@ scripts_dir=$(dirname ${scripts})
 events=$1
 monitor_file=$3
 
-if [ "${monitor_file}" = "disable" ]; then
-    case "${events}" in
-    "d")
-        ${scripts_dir}/TTLink.service enable >/dev/null 2>&1
-        ${scripts_dir}/TTLink.service description >/dev/null 2>&1
+if [[ "${monitor_file}" == "disable" ]]; then
+  case "${events}" in
+  "d")
+    ${scripts_dir}/TTLink.service enable >/dev/null 2>&1
+    ${scripts_dir}/TTLink.service description >/dev/null 2>&1
     ;;
-    "n")
-        ${scripts_dir}/TTLink.service disable >/dev/null 2>&1
-        ${scripts_dir}/TTLink.service description >/dev/null 2>&1
+  "n")
+    ${scripts_dir}/TTLink.service disable >/dev/null 2>&1
+    ${scripts_dir}/TTLink.service description >/dev/null 2>&1
     ;;
-    esac
+  esac
 fi
 
 # TTLink.inotify
