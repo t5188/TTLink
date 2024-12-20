@@ -464,54 +464,21 @@ run_description() {
 }
 
 ownership() {
-  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
   chmod 755 ${bin_box} ${bin_xray}
   log Info "Changed permissions of $(basename "${bin_box}") and $(basename "${bin_xray}") to 755." >>"${parent_dir}/log/run.log"
   chown root:net_admin ${bin_box} ${bin_xray}
   log Info "Changed ownership of $(basename "${bin_box}") and $(basename "${bin_xray}") to root:net_admin." >>"${parent_dir}/log/run.log"
   chmod o+rw ${public_log_dir}
   log Info "Changed permissions of $(basename "${public_log_dir}") to add read and write access for others." >>"${parent_dir}/log/run.log"
+  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
 }
 
 launch_cores() {
   ownership
   ulimit -SHn 1000000
-
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
-    max_retries=3
-    retry_count=0
-    while true; do
-      nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
-      pid_xray=$!
-      if ps -p $pid_xray >/dev/null; then
-        log Info "xray started successfully with pid: ${pid_xray}" >>"${parent_dir}/log/run.log"
-        break
-      fi
-      if ((retry_count >= max_retries)); then
-        log Error "Failed to start xray after ${max_retries} attempts" >>"${parent_dir}/log/run.log"
-        toast "Error: Failed to start xray. Please check your configuration."
-        exit 1
-      fi
-      sleep 1
-      ((retry_count++))
-    done
-
-    retry_count=0
-    while true; do
-      nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
-      pid_box=$!
-      if ps -p $pid_box >/dev/null; then
-        log Info "sing-box started successfully with pid: ${pid_box}" >>"${parent_dir}/log/run.log"
-        break
-      fi
-      if ((retry_count >= max_retries)); then
-        log Error "Failed to start sing-box after ${max_retries} attempts" >>"${parent_dir}/log/run.log"
-        toast "Error: Failed to start sing-box. Please check your configuration."
-        exit 1
-      fi
-      sleep 1
-      ((retry_count++))
-    done
+    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
+    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
   else
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
       log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
