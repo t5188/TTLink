@@ -623,6 +623,17 @@ disable)
     fi
   done
   ;;
+restart)
+  if [[ "${network_mode}" == "tproxy" ]]; then
+    InboundsChange
+    start_tproxy
+    run_description
+  else
+    InboundsChange
+    start_tun
+    run_description
+  fi
+  ;;
 esac
 
 # TTLink.service
