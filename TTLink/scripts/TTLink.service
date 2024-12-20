@@ -478,18 +478,40 @@ launch_cores() {
   ulimit -SHn 1000000
 
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
-    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
-    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
-    if pid=$(pidof "${bin_box}" 2>/dev/null); then
-      log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
-    else
-      log Warning "Failed to retrieve sing-box PID." >>"${parent_dir}/log/run.log"
-    fi
-    if pid=$(pidof "${bin_xray}" 2>/dev/null); then
-      log Info "add xray pid: ${pid}" >>"${parent_dir}/log/run.log"
-    else
-      log Warning "Failed to retrieve xray PID." >>"${parent_dir}/log/run.log"
-    fi
+    max_retries=3
+    retry_count=0
+    while true; do
+      nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
+      pid_xray=$!
+      if ps -p $pid_xray >/dev/null; then
+        log Info "xray started successfully with pid: ${pid_xray}" >>"${parent_dir}/log/run.log"
+        break
+      fi
+      if ((retry_count >= max_retries)); then
+        log Error "Failed to start xray after ${max_retries} attempts" >>"${parent_dir}/log/run.log"
+        toast "Error: Failed to start xray. Please check your configuration."
+        exit 1
+      fi
+      sleep 1
+      ((retry_count++))
+    done
+
+    retry_count=0
+    while true; do
+      nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
+      pid_box=$!
+      if ps -p $pid_box >/dev/null; then
+        log Info "sing-box started successfully with pid: ${pid_box}" >>"${parent_dir}/log/run.log"
+        break
+      fi
+      if ((retry_count >= max_retries)); then
+        log Error "Failed to start sing-box after ${max_retries} attempts" >>"${parent_dir}/log/run.log"
+        toast "Error: Failed to start sing-box. Please check your configuration."
+        exit 1
+      fi
+      sleep 1
+      ((retry_count++))
+    done
   else
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
       log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
@@ -533,9 +555,11 @@ start_tun() {
     stop_tun
     log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
+  launch_cores
   forward -I
   [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
   package_rules4tun add
+  cron_task
   toast "TUN已启动"
 }
 
@@ -548,6 +572,7 @@ stop_tun() {
   [[ "${dns2tun}" == "true" ]] && remove_dns_rules4tun
   package_rules4tun del
   rm -f ${scripts_dir}/tables.tmp
+  del_task
   toast "TUN已关闭"
 }
 
@@ -561,9 +586,8 @@ start_tproxy() {
   initialize_uids
   run_iptables_rules
   run_disable_quic
-  toast "TP已开启"
-  log Info "Create a new process $(pidof ${bin_box})"
   cron_task
+  toast "TP已开启"
 }
 
 stop_tproxy() {
@@ -571,19 +595,10 @@ stop_tproxy() {
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
-  log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
   run_del_iptables_rules >/dev/null 2>&1
   del_disable_quic
   del_task
-  pid=$(pidof "${bin_box}" 2>/dev/null)
-  [ -n "${pid}" ] && log Info "del sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
-  pid=$(pidof "${bin_xray}" 2>/dev/null)
-  [ -n "${pid}" ] && log Info "del xray pid: ${pid}" >>"${parent_dir}/log/run.log"
-  kill $(pidof "${bin_box}") >/dev/null 2>&1
-  kill $(pidof "${bin_xray}") >/dev/null 2>&1
-  rm ${scripts_dir}/*.list
   toast "TP已关闭"
-  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
 }
 
 InboundsChange() {
