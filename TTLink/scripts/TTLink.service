@@ -464,6 +464,7 @@ run_description() {
 }
 
 ownership() {
+  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
   chmod 755 ${bin_box} ${bin_xray}
   log Info "Changed permissions of $(basename "${bin_box}") and $(basename "${bin_xray}") to 755." >>"${parent_dir}/log/run.log"
   chown root:net_admin ${bin_box} ${bin_xray}
@@ -530,7 +531,6 @@ start_tun() {
     stop_tun
     log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
-  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
   forward -I
   [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
   toast "TUN已启动"
@@ -548,7 +548,6 @@ start_tproxy() {
   initialize_uids
   run_iptables_rules
   run_disable_quic
-  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
   toast "TP已开启"
   log Info "Create a new process $(pidof ${bin_box})"
   cron_task
