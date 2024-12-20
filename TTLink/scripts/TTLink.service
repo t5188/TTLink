@@ -21,6 +21,11 @@ else
   IP6V="ip6tables"
 fi
 
+toast() {
+  local event=$1
+  am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "$event" >/dev/null 2>&1
+}
+
 disable_ipv6() {
   sysctl -w net.ipv4.ip_forward=1
   sysctl -w net.ipv6.conf.all.forwarding=0
@@ -468,53 +473,69 @@ ownership() {
 }
 
 launch_cores() {
+  ownership
+  ulimit -SHn 1000000
+
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
-  nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
-  nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
-  pid=$(pidof "${bin_box}" 2>/dev/null) && [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
-  pid=$(pidof "${bin_xray}" 2>/dev/null) && [ -n "${pid}" ] && log Info "add xray pid: ${pid}" >>"${parent_dir}/log/run.log"
+    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
+    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
+    if pid=$(pidof "${bin_box}" 2>/dev/null); then
+      log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
+    else
+      log Warning "Failed to retrieve sing-box PID." >>"${parent_dir}/log/run.log"
+    fi
+    if pid=$(pidof "${bin_xray}" 2>/dev/null); then
+      log Info "add xray pid: ${pid}" >>"${parent_dir}/log/run.log"
+    else
+      log Warning "Failed to retrieve xray PID." >>"${parent_dir}/log/run.log"
+    fi
   else
-           log Error "Required binaries not found: ${bin_box} or ${bin_xray}" >>"${parent_dir}/log/run.log"
-        toast "Error: Missing required binaries. Check your installation."
+    if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
+      log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
+      toast "Error: Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}"). Please check your installation."
+    elif [[ ! -f "${bin_box}" ]]; then
+      log Error "Binary missing: $(basename "${bin_box}")" >>"${parent_dir}/log/run.log"
+      toast "Error: Missing binary $(basename "${bin_box}"). Please check your installation."
+    elif [[ ! -f "${bin_xray}" ]]; then
+      log Error "Binary missing: $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
+      toast "Error: Missing binary $(basename "${bin_xray}"). Please check your installation."
+    fi
   fi
 }
 
 shutdown_cores() {
-  pid=$(pidof "${bin_box}" 2>/dev/null) && [ -n "${pid}" ] && log Info "del sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
-  pid=$(pidof "${bin_xray}" 2>/dev/null) && [ -n "${pid}" ] && log Info "del xray pid: ${pid}" >>"${parent_dir}/log/run.log"
-   kill $(pidof "${bin_box}") >/dev/null 2>&1
-  kill $(pidof "${bin_xray}") >/dev/null 2>&1
-}
+  if pidof "${bin_box}" >/dev/null 2>&1; then
+    pid=$(pidof "${bin_box}")
+    log Info "del sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
+    kill "${pid}" >/dev/null 2>&1
+    log Info "sing-box process (${pid}) terminated." >>"${parent_dir}/log/run.log"
+  else
+    log Warning "sing-box is not running." >>"${parent_dir}/log/run.log"
+  fi
 
-toast() {
-  local event=$1
-  am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "$event" >/dev/null 2>&1
+  if pidof "${bin_xray}" >/dev/null 2>&1; then
+    pid=$(pidof "${bin_xray}")
+    log Info "del xray pid: ${pid}" >>"${parent_dir}/log/run.log"
+    kill "${pid}" >/dev/null 2>&1
+    log Info "xray process (${pid}) terminated." >>"${parent_dir}/log/run.log"
+  else
+    log Warning "xray is not running." >>"${parent_dir}/log/run.log"
+  fi
 }
 
 start_tun() {
-  
-    log Info "---welcome---" >"${parent_dir}/log/run.log"
-    if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
-      log Info "Close existing processes"
-      stop_tun
-      log Info "---restart---" >"${parent_dir}/log/run.log"
-    fi
-    log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
-    ulimit -SHn 1000000
-    ownership
-    find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
-
-    forward -I
-    [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
-
-    toast "Tun已启动"
-    log Info "Create a new process $(pidof ${bin_box})"
-    package_rules4tun add
-  else
-    log Error "Binary ${bin_box} not found"
-    toast "$(basename "${bin_box}") not found"
-    exit 1
+  log Info "---welcome---" >"${parent_dir}/log/run.log"
+  if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
+    log Info "Close existing processes"
+    stop_tun
+    log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
+  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
+  forward -I
+  [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
+  toast "Tun已启动"
+  log Info "Create a new process $(pidof ${bin_box})"
+  package_rules4tun add
 }
 
 start_tproxy() {
