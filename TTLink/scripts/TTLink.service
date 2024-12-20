@@ -556,7 +556,10 @@ start_tun() {
     log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
   launch_cores
+
   forward -I
+  echo "$index"
+  echo "$device"
   [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
   package_rules4tun add
   cron_task
@@ -587,6 +590,7 @@ start_tproxy() {
   initialize_uids
   run_iptables_rules
   run_disable_quic
+  launch_cores
   cron_task
   toast "TP已开启"
 }
