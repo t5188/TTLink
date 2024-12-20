@@ -162,9 +162,9 @@ forward() {
   device_index
   local action=$1
   if [[ "${action}" == "-I" ]]; then
-    echo 1 >/proc/sys/net/ipv4/ip_forward
-    echo 2 >/proc/sys/net/ipv4/conf/default/rp_filter
-    echo 2 >/proc/sys/net/ipv4/conf/all/rp_filter
+    sysctl -w net.ipv4.ip_forward=1
+    sysctl -w net.ipv4.conf.default.rp_filter=2
+    sysctl -w net.ipv4.conf.all.rp_filter=2
     enable_ipv6
     ip_rules "add"
   elif [[ "${action}" == "-D" ]]; then
