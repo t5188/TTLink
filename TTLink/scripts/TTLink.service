@@ -573,6 +573,7 @@ stop_tun() {
   package_rules4tun del
   rm -f ${scripts_dir}/tables.tmp
   del_task
+  shutdown_cores
   toast "TUN已关闭"
 }
 
@@ -598,6 +599,7 @@ stop_tproxy() {
   run_del_iptables_rules >/dev/null 2>&1
   del_disable_quic
   del_task
+  shutdown_cores
   toast "TP已关闭"
 }
 
