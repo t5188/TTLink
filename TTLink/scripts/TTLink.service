@@ -544,7 +544,6 @@ stop_tun() {
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
-  log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
   forward -D
   [[ "${dns2tun}" == "true" ]] && remove_dns_rules4tun
   package_rules4tun del
