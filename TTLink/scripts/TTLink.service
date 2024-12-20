@@ -472,10 +472,10 @@ start_tun() {
     chmod o+rw ${public_log_dir}
     log Info "Changed permissions of $(basename "${public_log_dir}") to add read and write access for others." >>"${parent_dir}/log/run.log"
     find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
+    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     forward -I
     [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
-    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     pid=$(pidof sing-box 2>/dev/null)
     [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
     pid=$(pidof xray 2>/dev/null)
@@ -531,8 +531,8 @@ start_tproxy() {
     chmod o+rw ${public_log_dir}
     log Info "Changed permissions of $(basename "${public_log_dir}") to add read and write access for others." >>"${parent_dir}/log/run.log"
     find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
-    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
+    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     pid=$(pidof sing-box 2>/dev/null)
     [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
     pid=$(pidof xray 2>/dev/null)
