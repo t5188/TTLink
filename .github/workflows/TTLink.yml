@@ -79,5 +79,4 @@ jobs:
           body: ${{ env.RELEASE_NOTES }}
           prerelease: false
           draft: false  # Ensure the release is not a draft
-          overwrite: true  # Ensure the existing release is overwritten
           generate_release_notes: false
