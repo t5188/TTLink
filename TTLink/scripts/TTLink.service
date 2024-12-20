@@ -440,8 +440,8 @@ description() {
   local event=$2
   version
   prop_file="/data/adb/modules/TTLink/module.prop"
-  core_name_box="${bin_box##*/}"
-  core_name_xray="${bin_xray##*/}"
+  core_name_box="$(basename "${bin_box}")"
+  core_name_xray="$(basename "${bin_xray}")"
   current_time=$(date "+[%m.%d %H:%M]")
   sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} work with ${core_name_xray} ${version_xray} ${network_mode} ${event}" "${prop_file}"
   log Info "${symbol} ${network_mode} ${event}" >>"${parent_dir}/log/run.log"
@@ -485,7 +485,7 @@ start_tun() {
     package_rules4tun add
   else
     log Error "Binary ${bin_box} not found"
-    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "${bin_box##*/} not found" >/dev/null 2>&1
+    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "$(basename "${bin_box}") not found" >/dev/null 2>&1
     exit 1
   fi
 }
@@ -542,7 +542,7 @@ start_tproxy() {
     cron_task
   else
     log Error "Binary ${bin_box} not found"
-    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "${bin_box##*/} not found" >/dev/null 2>&1
+    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "$(basename "${bin_box}") not found" >/dev/null 2>&1
     exit 1
   fi
 }
