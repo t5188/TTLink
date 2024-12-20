@@ -482,7 +482,6 @@ launch_cores() {
       forward -I
     fi
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
-
   else
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
       log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
