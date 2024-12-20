@@ -57,7 +57,6 @@ device_index() {
 }
 
 ip_rules() {
-  device_index
   local action=$1
   ipv4_rules=(
     "iif lo goto 6000 priority 5000"
@@ -90,27 +89,7 @@ ip_rules() {
   done
 }
 
-iptables_rules4tun() {
-  local iptables=$1
-  local action=$2
-  if [[ "${action}" == "-I" ]]; then
-    ${iptables} -N TUN_FORWARD 2>/dev/null
-    ${iptables} -F TUN_FORWARD 2>/dev/null
-    ${iptables} "${action}" TUN_FORWARD -i "${device}" -j ACCEPT
-    ${iptables} "${action}" TUN_FORWARD -o "${device}" -j ACCEPT
-    ${iptables} "${action}" FORWARD -j TUN_FORWARD
-  elif [[ "${action}" == "-D" ]]; then
-    ${iptables} "${action}" FORWARD -j TUN_FORWARD
-    ${iptables} -F TUN_FORWARD 2>/dev/null
-    ${iptables} -X TUN_FORWARD 2>/dev/null
-  fi
-  # quic
-  ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
-  ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
-}
-
 dns_rules4tun() {
-  device_index
   local name="DNS2TUN"
   local ip=${1}
   local iptables=${2}
@@ -156,7 +135,27 @@ remove_dns_rules4tun() {
   dns_rules4tun "ip -6" "ip6tables" "-D"
 }
 
+iptables_rules4tun() {
+  local iptables=$1
+  local action=$2
+  if [[ "${action}" == "-I" ]]; then
+    ${iptables} -N TUN_FORWARD 2>/dev/null
+    ${iptables} -F TUN_FORWARD 2>/dev/null
+    ${iptables} "${action}" TUN_FORWARD -i "${device}" -j ACCEPT
+    ${iptables} "${action}" TUN_FORWARD -o "${device}" -j ACCEPT
+    ${iptables} "${action}" FORWARD -j TUN_FORWARD
+  elif [[ "${action}" == "-D" ]]; then
+    ${iptables} "${action}" FORWARD -j TUN_FORWARD
+    ${iptables} -F TUN_FORWARD 2>/dev/null
+    ${iptables} -X TUN_FORWARD 2>/dev/null
+  fi
+  # quic
+  ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
+  ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
+}
+
 forward() {
+  device_index
   local action=$1
   if [[ "${action}" == "-I" ]]; then
     echo 1 >/proc/sys/net/ipv4/ip_forward
