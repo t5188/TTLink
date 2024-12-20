@@ -533,35 +533,25 @@ start_tun() {
   find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
   forward -I
   [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
-  toast "Tun已启动"
+  toast "TUN已启动"
   log Info "Create a new process $(pidof ${bin_box})"
   package_rules4tun add
 }
 
 start_tproxy() {
-  if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
-    log Info "---welcome---" >"${parent_dir}/log/run.log"
-    if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
-      log Info "Close existing processes"
-      stop_tproxy
-      log Info "---restart---" >"${parent_dir}/log/run.log"
-    fi
-    log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
-    initialize_uids
-    run_iptables_rules
-    run_disable_quic
-    ulimit -SHn 1000000
-    ownership
-    find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
-
-    toast "TP已开启"
-    log Info "Create a new process $(pidof ${bin_box})"
-    cron_task
-  else
-    log Error "Binary ${bin_box} not found"
-    toast "$(basename "${bin_box}") not found"
-    exit 1
+  log Info "---welcome---" >"${parent_dir}/log/run.log"
+  if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
+    log Info "Close existing processes"
+    stop_tproxy
+    log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
+  initialize_uids
+  run_iptables_rules
+  run_disable_quic
+  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
+  toast "TP已开启"
+  log Info "Create a new process $(pidof ${bin_box})"
+  cron_task
 }
 
 stop_tun() {
