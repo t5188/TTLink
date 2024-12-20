@@ -600,7 +600,7 @@ InboundsChange() {
 
 case "$1" in
 enable)
-  while [[ -n $(pidof "${bin_box}") && -n $(pidof "${bin_xray}") ]]; do
+  until [[ -n $(pidof "${bin_box}") && -n $(pidof "${bin_xray}") ]]; do
     if [[ "${network_mode}" == "tproxy" ]]; then
       InboundsChange
       start_tproxy
@@ -613,7 +613,7 @@ enable)
   done
   ;;
 disable)
-  while [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; do
+  until [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; do
     if [[ "${network_mode}" == "tproxy" ]]; then
       stop_tproxy
       run_description
