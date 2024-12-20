@@ -458,8 +458,41 @@ run_description() {
   fi
 }
 
-start_tun() {
+ownership() {
+  chmod 755 ${bin_box} ${bin_xray}
+  log Info "Changed permissions of $(basename "${bin_box}") and $(basename "${bin_xray}") to 755." >>"${parent_dir}/log/run.log"
+  chown root:net_admin ${bin_box} ${bin_xray}
+  log Info "Changed ownership of $(basename "${bin_box}") and $(basename "${bin_xray}") to root:net_admin." >>"${parent_dir}/log/run.log"
+  chmod o+rw ${public_log_dir}
+  log Info "Changed permissions of $(basename "${public_log_dir}") to add read and write access for others." >>"${parent_dir}/log/run.log"
+}
+
+launch_cores() {
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
+  nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
+  nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
+  pid=$(pidof "${bin_box}" 2>/dev/null) && [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
+  pid=$(pidof "${bin_xray}" 2>/dev/null) && [ -n "${pid}" ] && log Info "add xray pid: ${pid}" >>"${parent_dir}/log/run.log"
+  else
+           log Error "Required binaries not found: ${bin_box} or ${bin_xray}" >>"${parent_dir}/log/run.log"
+        toast "Error: Missing required binaries. Check your installation."
+  fi
+}
+
+shutdown_cores() {
+  pid=$(pidof "${bin_box}" 2>/dev/null) && [ -n "${pid}" ] && log Info "del sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
+  pid=$(pidof "${bin_xray}" 2>/dev/null) && [ -n "${pid}" ] && log Info "del xray pid: ${pid}" >>"${parent_dir}/log/run.log"
+   kill $(pidof "${bin_box}") >/dev/null 2>&1
+  kill $(pidof "${bin_xray}") >/dev/null 2>&1
+}
+
+toast() {
+  local event=$1
+  am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "$event" >/dev/null 2>&1
+}
+
+start_tun() {
+  
     log Info "---welcome---" >"${parent_dir}/log/run.log"
     if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
       log Info "Close existing processes"
@@ -468,50 +501,20 @@ start_tun() {
     fi
     log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
     ulimit -SHn 1000000
-    chmod 755 ${bin_box} ${bin_xray}
-    log Info "Changed permissions of $(basename "${bin_box}") and $(basename "${bin_xray}") to 755." >>"${parent_dir}/log/run.log"
-    chown root:net_admin ${bin_box} ${bin_xray}
-    log Info "Changed ownership of $(basename "${bin_box}") and $(basename "${bin_xray}") to root:net_admin." >>"${parent_dir}/log/run.log"
-    chmod o+rw ${public_log_dir}
-    log Info "Changed permissions of $(basename "${public_log_dir}") to add read and write access for others." >>"${parent_dir}/log/run.log"
+    ownership
     find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
-    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
+
     forward -I
     [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
-    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
-    pid=$(pidof sing-box 2>/dev/null)
-    [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
-    pid=$(pidof xray 2>/dev/null)
-    [ -n "${pid}" ] && log Info "add xray pid: ${pid}" >>"${parent_dir}/log/run.log"
-    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "TUN已开启" >/dev/null 2>&1
+
+    toast "Tun已启动"
     log Info "Create a new process $(pidof ${bin_box})"
     package_rules4tun add
   else
     log Error "Binary ${bin_box} not found"
-    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "$(basename "${bin_box}") not found" >/dev/null 2>&1
+    toast "$(basename "${bin_box}") not found"
     exit 1
   fi
-}
-
-stop_tun() {
-  if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
-    exit 1
-  fi
-  log Info "---goodbye---" >"${parent_dir}/log/run.log"
-  log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
-  forward -D
-  [[ "${dns2tun}" == "true" ]] && remove_dns_rules4tun
-  package_rules4tun del
-  pid=$(pidof sing-box 2>/dev/null)
-  [ -n "${pid}" ] && log Info "del sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
-  pid=$(pidof xray 2>/dev/null)
-  [ -n "${pid}" ] && log Info "del xray pid: ${pid}" >>"${parent_dir}/log/run.log"
-  kill $(pidof sing-box) >/dev/null 2>&1
-  kill $(pidof xray) >/dev/null 2>&1
-  am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "TUN已关闭" >/dev/null 2>&1
-  rm -f ${scripts_dir}/tables.tmp
-  rm -f ${scripts_dir}/*.list
-  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
 }
 
 start_tproxy() {
@@ -527,27 +530,33 @@ start_tproxy() {
     run_iptables_rules
     run_disable_quic
     ulimit -SHn 1000000
-    chmod 755 ${bin_box} ${bin_xray}
-    log Info "Changed permissions of $(basename "${bin_box}") and $(basename "${bin_xray}") to 755." >>"${parent_dir}/log/run.log"
-    chown root:net_admin ${bin_box} ${bin_xray}
-    log Info "Changed ownership of $(basename "${bin_box}") and $(basename "${bin_xray}") to root:net_admin." >>"${parent_dir}/log/run.log"
-    chmod o+rw ${public_log_dir}
-    log Info "Changed permissions of $(basename "${public_log_dir}") to add read and write access for others." >>"${parent_dir}/log/run.log"
+    ownership
     find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
-    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
-    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
-    pid=$(pidof sing-box 2>/dev/null)
-    [ -n "${pid}" ] && log Info "add sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
-    pid=$(pidof xray 2>/dev/null)
-    [ -n "${pid}" ] && log Info "add xray pid: ${pid}" >>"${parent_dir}/log/run.log"
-    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "TP已开启" >/dev/null 2>&1
+
+    toast "TP已开启"
     log Info "Create a new process $(pidof ${bin_box})"
     cron_task
   else
     log Error "Binary ${bin_box} not found"
-    am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "$(basename "${bin_box}") not found" >/dev/null 2>&1
+    toast "$(basename "${bin_box}") not found"
     exit 1
   fi
+}
+
+stop_tun() {
+  if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
+    exit 1
+  fi
+  log Info "---goodbye---" >"${parent_dir}/log/run.log"
+  log Info "slot$(getprop ro.boot.slot_suffix)" >>"${parent_dir}/log/run.log"
+  forward -D
+  [[ "${dns2tun}" == "true" ]] && remove_dns_rules4tun
+  package_rules4tun del
+
+  toast "TUN已关闭"
+  rm -f ${scripts_dir}/tables.tmp
+  rm -f ${scripts_dir}/*.list
+  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
 }
 
 stop_tproxy() {
@@ -559,14 +568,14 @@ stop_tproxy() {
   run_del_iptables_rules >/dev/null 2>&1
   del_disable_quic
   del_task
-  pid=$(pidof sing-box 2>/dev/null)
+  pid=$(pidof "${bin_box}" 2>/dev/null)
   [ -n "${pid}" ] && log Info "del sing-box pid: ${pid}" >>"${parent_dir}/log/run.log"
-  pid=$(pidof xray 2>/dev/null)
+  pid=$(pidof "${bin_xray}" 2>/dev/null)
   [ -n "${pid}" ] && log Info "del xray pid: ${pid}" >>"${parent_dir}/log/run.log"
-  kill $(pidof sing-box) >/dev/null 2>&1
-  kill $(pidof xray) >/dev/null 2>&1
+  kill $(pidof "${bin_box}") >/dev/null 2>&1
+  kill $(pidof "${bin_xray}") >/dev/null 2>&1
   rm ${scripts_dir}/*.list
-  am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "TP已关闭" >/dev/null 2>&1
+  toast "TP已关闭"
   find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
 }
 
