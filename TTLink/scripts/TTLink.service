@@ -538,21 +538,6 @@ start_tun() {
   package_rules4tun add
 }
 
-start_tproxy() {
-  log Info "---welcome---" >"${parent_dir}/log/run.log"
-  if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
-    log Info "Close existing processes"
-    stop_tproxy
-    log Info "---restart---" >"${parent_dir}/log/run.log"
-  fi
-  initialize_uids
-  run_iptables_rules
-  run_disable_quic
-  toast "TP已开启"
-  log Info "Create a new process $(pidof ${bin_box})"
-  cron_task
-}
-
 stop_tun() {
   if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
     exit 1
@@ -567,6 +552,21 @@ stop_tun() {
   rm -f ${scripts_dir}/tables.tmp
   rm -f ${scripts_dir}/*.list
   find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
+}
+
+start_tproxy() {
+  log Info "---welcome---" >"${parent_dir}/log/run.log"
+  if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
+    log Info "Close existing processes"
+    stop_tproxy
+    log Info "---restart---" >"${parent_dir}/log/run.log"
+  fi
+  initialize_uids
+  run_iptables_rules
+  run_disable_quic
+  toast "TP已开启"
+  log Info "Create a new process $(pidof ${bin_box})"
+  cron_task
 }
 
 stop_tproxy() {
