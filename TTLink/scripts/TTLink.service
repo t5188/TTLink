@@ -600,30 +600,6 @@ InboundsChange() {
 
 case "$1" in
 enable)
-  until [[ -n $(pidof "${bin_box}") && -n $(pidof "${bin_xray}") ]]; do
-    if [[ "${network_mode}" == "tproxy" ]]; then
-      InboundsChange
-      start_tproxy
-      run_description
-    else
-      InboundsChange
-      start_tun
-      run_description
-    fi
-  done
-  ;;
-disable)
-  until [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; do
-    if [[ "${network_mode}" == "tproxy" ]]; then
-      stop_tproxy
-      run_description
-    else
-      stop_tun
-      run_description
-    fi
-  done
-  ;;
-restart)
   if [[ "${network_mode}" == "tproxy" ]]; then
     InboundsChange
     start_tproxy
@@ -631,6 +607,15 @@ restart)
   else
     InboundsChange
     start_tun
+    run_description
+  fi
+  ;;
+disable)
+  if [[ "${network_mode}" == "tproxy" ]]; then
+    stop_tproxy
+    run_description
+  else
+    stop_tun
     run_description
   fi
   ;;

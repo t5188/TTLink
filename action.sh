@@ -8,7 +8,7 @@ scripts_dir="/data/adb/TTLink/scripts"
 restart_proxy_service() {
 if [ ! -f "${module_dir}/disable" ]; then
   echo "🔁restart TTLink"
-  ${scripts_dir}/TTLink.service restart >/dev/null 2>&1
+  ${scripts_dir}/TTLink.service enable >/dev/null 2>&1
 else
   echo "🥴 module disabled"
   sleep 1

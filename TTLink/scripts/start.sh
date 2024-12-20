@@ -11,11 +11,6 @@ source "${scripts_dir}/TTLink.service"
 cd ${scripts_dir}
 
 proxy_service() {
-  if pidof "${bin_box}" >/dev/null || pidof "${bin_xray}" >/dev/null; then
-    kill $(pidof "${bin_box}") 2>/dev/null
-    kill $(pidof "${bin_xray}") 2>/dev/null
-  fi
-
   if [[ ! -f "${module_dir}/disable" ]]; then
     log Info "Module Enabled"
     log Info "Start TTLink"
