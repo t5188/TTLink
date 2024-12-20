@@ -522,6 +522,8 @@ shutdown_cores() {
   else
     log Warning "xray is not running." >>"${parent_dir}/log/run.log"
   fi
+  rm -f ${scripts_dir}/*.list
+  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
 }
 
 start_tun() {
@@ -533,9 +535,8 @@ start_tun() {
   fi
   forward -I
   [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
-  toast "TUN已启动"
-  log Info "Create a new process $(pidof ${bin_box})"
   package_rules4tun add
+  toast "TUN已启动"
 }
 
 stop_tun() {
@@ -547,11 +548,8 @@ stop_tun() {
   forward -D
   [[ "${dns2tun}" == "true" ]] && remove_dns_rules4tun
   package_rules4tun del
-
-  toast "TUN已关闭"
   rm -f ${scripts_dir}/tables.tmp
-  rm -f ${scripts_dir}/*.list
-  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
+  toast "TUN已关闭"
 }
 
 start_tproxy() {
