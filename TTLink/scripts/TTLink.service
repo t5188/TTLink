@@ -474,6 +474,8 @@ launch_cores() {
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     if [[ "${network_mode}" == "tun" ]]; then
       forward -I
+      package_rules4tun add
+      [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
     fi
     ownership "${bin_xray}"
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
@@ -512,8 +514,6 @@ start_tun() {
     log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
   launch_cores
-  [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
-  package_rules4tun add
   cron_task
   toast "TUN已启动"
 }
