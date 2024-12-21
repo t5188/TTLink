@@ -110,7 +110,6 @@ iptables_rules4tun() {
 }
 
 dns_rules4tun() {
-  device_index
   local name="DNS2TUN"
   local ip=${1}
   local iptables=${2}
