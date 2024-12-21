@@ -21,6 +21,11 @@ else
   IP6V="ip6tables"
 fi
 
+
+
+
+
+
 disable_ipv6() {
   echo 0 >/proc/sys/net/ipv6/conf/all/accept_ra
   echo 0 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
@@ -36,6 +41,10 @@ enable_ipv6() {
   echo 0 >/proc/sys/net/ipv6/conf/default/disable_ipv6
   echo 0 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
 }
+
+
+
+
 
 device_index() {
   local max_retries=5
@@ -461,6 +470,7 @@ run_description() {
   fi
 }
 
+
 ownership() {
   local bin_name=$1
   chmod 755 ${bin_name}
@@ -616,3 +626,4 @@ disable)
 esac
 
 # TTLink.service
+
