@@ -77,6 +77,6 @@ jobs:
           tag_name: ${{ env.VERSION }}
           files: TTLink-v*.zip
           body: ${{ env.RELEASE_NOTES }}
-          prerelease: true
+          prerelease: false
           draft: false  # Ensure the release is not a draft
           generate_release_notes: false
