@@ -38,29 +38,27 @@ enable_ipv6() {
 }
 
 device_index() {
-  local max_retries=5
+  local max_retries=10
   local retry_count=0
   index=""
   if [ ! -f "${scripts_dir}/tables.tmp" ]; then
     device=$(awk -F'"' '/"interface_name"/ {print $4; exit}' ${box_confs_dir}/*.json)
     while [ -z "$index" ] && [ $retry_count -lt $max_retries ]; do
-      index=$(ip route show table all | grep -E "dev ${device} table [0-9]" | head -n 1 | awk '{print $5}')
+      index=$(ip route show table all | grep -E "default dev ${device} table [0-9]" | head -n 1 | awk '{print $5}')
       if [ -n "$index" ]; then
         break
       fi
       sleep 1
       retry_count=$((retry_count + 1))
+      log Info "Attempting to fetch index (Attempt $((retry_count + 1))/${max_retries})" >>"${parent_dir}/log/run.log"
     done
-    echo "${index} ${device}" >${scripts_dir}/tables.tmp
+    [[ -n "${index}" ]] && echo "${index} ${device}" >${scripts_dir}/tables.tmp
   fi
   read index device <"${scripts_dir}/tables.tmp"
 }
 
 ip_rules() {
   device_index
-  while [[ -z "$index" ]]; do
-    start_tun
-  done
   local action=$1
   ipv4_rules=(
     "iif lo goto 6000 priority 5000"
