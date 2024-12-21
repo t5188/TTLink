@@ -27,19 +27,23 @@ toast() {
 }
 
 disable_ipv6() {
-  echo 0 >/proc/sys/net/ipv6/conf/all/accept_ra
-  echo 0 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
-  echo 1 >/proc/sys/net/ipv6/conf/all/disable_ipv6
-  echo 1 >/proc/sys/net/ipv6/conf/default/disable_ipv6
-  echo 1 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
+  sysctl -w net.ipv4.ip_forward=1
+  sysctl -w net.ipv6.conf.all.forwarding=0
+  sysctl -w net.ipv6.conf.all.accept_ra=0
+  sysctl -w net.ipv6.conf.wlan0.accept_ra=0
+  sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  sysctl -w net.ipv6.conf.wlan0.disable_ipv6=1
 }
 
 enable_ipv6() {
-  echo 1 >/proc/sys/net/ipv6/conf/all/accept_ra
-  echo 1 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
-  echo 0 >/proc/sys/net/ipv6/conf/all/disable_ipv6
-  echo 0 >/proc/sys/net/ipv6/conf/default/disable_ipv6
-  echo 0 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
+  sysctl -w net.ipv4.ip_forward=1
+  sysctl -w net.ipv6.conf.all.forwarding=1
+  sysctl -w net.ipv6.conf.all.accept_ra=2
+  sysctl -w net.ipv6.conf.wlan0.accept_ra=2
+  sysctl -w net.ipv6.conf.all.disable_ipv6=0
+  sysctl -w net.ipv6.conf.default.disable_ipv6=0
+  sysctl -w net.ipv6.conf.wlan0.disable_ipv6=0
 }
 
 device_index() {
@@ -62,6 +66,7 @@ device_index() {
 }
 
 ip_rules() {
+  device_index
   local action=$1
   ipv4_rules=(
     "iif lo goto 6000 priority 5000"
@@ -141,6 +146,7 @@ remove_dns_rules4tun() {
 }
 
 iptables_rules4tun() {
+  device_index
   local iptables=$1
   local action=$2
   if [[ "${action}" == "-I" ]]; then
@@ -160,12 +166,11 @@ iptables_rules4tun() {
 }
 
 forward() {
-  device_index
   local action=$1
   if [[ "${action}" == "-I" ]]; then
-    echo 1 >/proc/sys/net/ipv4/ip_forward
-    echo 2 >/proc/sys/net/ipv4/conf/default/rp_filter
-    echo 2 >/proc/sys/net/ipv4/conf/all/rp_filter
+    sysctl -w net.ipv4.ip_forward=1
+    sysctl -w net.ipv4.conf.default.rp_filter=2
+    sysctl -w net.ipv4.conf.all.rp_filter=2
     enable_ipv6
     ip_rules "add"
   elif [[ "${action}" == "-D" ]]; then
