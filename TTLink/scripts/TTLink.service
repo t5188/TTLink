@@ -465,11 +465,8 @@ run_description() {
 
 ownership() {
   chmod 755 ${bin_box} ${bin_xray}
-  log Info "Changed permissions of $(basename "${bin_box}") and $(basename "${bin_xray}") to 755." >>"${parent_dir}/log/run.log"
   chown root:net_admin ${bin_box} ${bin_xray}
-  log Info "Changed ownership of $(basename "${bin_box}") and $(basename "${bin_xray}") to root:net_admin." >>"${parent_dir}/log/run.log"
   chmod o+rw ${public_log_dir}
-  log Info "Changed permissions of $(basename "${public_log_dir}") to add read and write access for others." >>"${parent_dir}/log/run.log"
   find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
 }
 
