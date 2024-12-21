@@ -467,12 +467,30 @@ ownership() {
   find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
 }
 
-
-
-
-
-
-
+launch_cores() {
+  ulimit -SHn 1000000
+  ownership
+  if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
+    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
+    if [[ "${network_mode}" == "tun" ]]; then
+      forward -I
+      package_rules4tun add
+      [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
+    fi
+    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
+  else
+    if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
+      log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
+      toast "Error: Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}"). Please check your installation."
+    elif [[ ! -f "${bin_box}" ]]; then
+      log Error "Binary missing: $(basename "${bin_box}")" >>"${parent_dir}/log/run.log"
+      toast "Error: Missing binary $(basename "${bin_box}"). Please check your installation."
+    elif [[ ! -f "${bin_xray}" ]]; then
+      log Error "Binary missing: $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
+      toast "Error: Missing binary $(basename "${bin_xray}"). Please check your installation."
+    fi
+  fi
+}
 
 shutdown_cores() {
   pid=$(pidof "${bin_box}")
