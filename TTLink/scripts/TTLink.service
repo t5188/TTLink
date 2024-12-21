@@ -21,29 +21,20 @@ else
   IP6V="ip6tables"
 fi
 
-toast() {
-  local event=$1
-  am start -a android.intent.action.VIEW -n com.jozein.xedgepro/.ui.ActivityPerformAction --ei __0 111 --es __1 "$event" >/dev/null 2>&1
-}
-
 disable_ipv6() {
-  sysctl -w net.ipv4.ip_forward=1
-  sysctl -w net.ipv6.conf.all.forwarding=0
-  sysctl -w net.ipv6.conf.all.accept_ra=0
-  sysctl -w net.ipv6.conf.wlan0.accept_ra=0
-  sysctl -w net.ipv6.conf.all.disable_ipv6=1
-  sysctl -w net.ipv6.conf.default.disable_ipv6=1
-  sysctl -w net.ipv6.conf.wlan0.disable_ipv6=1
+  echo 0 >/proc/sys/net/ipv6/conf/all/accept_ra
+  echo 0 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
+  echo 1 >/proc/sys/net/ipv6/conf/all/disable_ipv6
+  echo 1 >/proc/sys/net/ipv6/conf/default/disable_ipv6
+  echo 1 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
 }
 
 enable_ipv6() {
-  sysctl -w net.ipv4.ip_forward=1
-  sysctl -w net.ipv6.conf.all.forwarding=1
-  sysctl -w net.ipv6.conf.all.accept_ra=2
-  sysctl -w net.ipv6.conf.wlan0.accept_ra=2
-  sysctl -w net.ipv6.conf.all.disable_ipv6=0
-  sysctl -w net.ipv6.conf.default.disable_ipv6=0
-  sysctl -w net.ipv6.conf.wlan0.disable_ipv6=0
+  echo 1 >/proc/sys/net/ipv6/conf/all/accept_ra
+  echo 1 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
+  echo 0 >/proc/sys/net/ipv6/conf/all/disable_ipv6
+  echo 0 >/proc/sys/net/ipv6/conf/default/disable_ipv6
+  echo 0 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
 }
 
 device_index() {
@@ -99,7 +90,27 @@ ip_rules() {
   done
 }
 
+iptables_rules4tun() {
+  local iptables=$1
+  local action=$2
+  if [[ "${action}" == "-I" ]]; then
+    ${iptables} -N TUN_FORWARD 2>/dev/null
+    ${iptables} -F TUN_FORWARD 2>/dev/null
+    ${iptables} "${action}" TUN_FORWARD -i "${device}" -j ACCEPT
+    ${iptables} "${action}" TUN_FORWARD -o "${device}" -j ACCEPT
+    ${iptables} "${action}" FORWARD -j TUN_FORWARD
+  elif [[ "${action}" == "-D" ]]; then
+    ${iptables} "${action}" FORWARD -j TUN_FORWARD
+    ${iptables} -F TUN_FORWARD 2>/dev/null
+    ${iptables} -X TUN_FORWARD 2>/dev/null
+  fi
+  # quic
+  ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
+  ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
+}
+
 dns_rules4tun() {
+  device_index
   local name="DNS2TUN"
   local ip=${1}
   local iptables=${2}
@@ -120,6 +131,7 @@ dns_rules4tun() {
       ${iptables} -t mangle -F ${name}
       ${iptables} -t mangle ${action} ${name} -p udp --dport 53 -j MARK --set-mark 53
       ${iptables} -t mangle ${action} ${name} -p tcp --dport 53 -j MARK --set-mark 53
+      log Info "${iptables} ${name} rule has been created" >>"${parent_dir}/log/run.log"
     fi
 
     ${iptables} -t mangle ${action} OUTPUT -j ${name}
@@ -128,6 +140,7 @@ dns_rules4tun() {
     if [[ "${action}" == "-D" ]]; then
       ${iptables} -t mangle -F ${name}
       ${iptables} -t mangle -X ${name}
+      log Info "${iptables} ${name} rule has been removed" >>"${parent_dir}/log/run.log"
     fi
 
   else
@@ -145,32 +158,12 @@ remove_dns_rules4tun() {
   dns_rules4tun "ip -6" "ip6tables" "-D"
 }
 
-iptables_rules4tun() {
-  device_index
-  local iptables=$1
-  local action=$2
-  if [[ "${action}" == "-I" ]]; then
-    ${iptables} -N TUN_FORWARD 2>/dev/null
-    ${iptables} -F TUN_FORWARD 2>/dev/null
-    ${iptables} "${action}" TUN_FORWARD -i "${device}" -j ACCEPT
-    ${iptables} "${action}" TUN_FORWARD -o "${device}" -j ACCEPT
-    ${iptables} "${action}" FORWARD -j TUN_FORWARD
-  elif [[ "${action}" == "-D" ]]; then
-    ${iptables} "${action}" FORWARD -j TUN_FORWARD
-    ${iptables} -F TUN_FORWARD 2>/dev/null
-    ${iptables} -X TUN_FORWARD 2>/dev/null
-  fi
-  # quic
-  ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
-  ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
-}
-
 forward() {
   local action=$1
   if [[ "${action}" == "-I" ]]; then
-    sysctl -w net.ipv4.ip_forward=1
-    sysctl -w net.ipv4.conf.default.rp_filter=2
-    sysctl -w net.ipv4.conf.all.rp_filter=2
+    echo 1 >/proc/sys/net/ipv4/ip_forward
+    echo 2 >/proc/sys/net/ipv4/conf/default/rp_filter
+    echo 2 >/proc/sys/net/ipv4/conf/all/rp_filter
     enable_ipv6
     ip_rules "add"
   elif [[ "${action}" == "-D" ]]; then
@@ -385,11 +378,13 @@ del_iptables_rules() {
   done
 }
 
+# Function to execute delete proxy rules
 run_del_iptables_rules() {
   del_iptables_rules ip "${table}" "${IPV}" "${chain_name}"
   del_iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6"
 }
 
+# Function to create task
 cron_task() {
   if [[ "${crond_task}" == "true" ]]; then
     crontab_file="${scripts_dir}/root"
@@ -404,6 +399,7 @@ cron_task() {
   fi
 }
 
+# Function to delete task
 del_task() {
   if pgrep busybox crond >/dev/null; then
     kill -9 $(pgrep busybox crond)
@@ -411,14 +407,15 @@ del_task() {
   fi
 }
 
+# Disable QUIC
 quic="disable"
 
 disable_quic() {
-  ${1} ${2} OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
-  ${1} ${2} OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
+  ${1} ${2} OUTPUT -p udp --dport 443 -m owner ! --gid-owner ${box_group} -j REJECT
+  ${1} ${2} OUTPUT -p udp --dport 80 -m owner ! --gid-owner ${box_group} -j REJECT
   if [[ "${2}" == "-D" ]]; then
-    while ${1} -C OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT ||
-      ${1} -C OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT; do
+    while ${1} -C OUTPUT -p udp --dport 443 -m owner ! --gid-owner ${box_group} -j REJECT ||
+      ${1} -C OUTPUT -p udp --dport 80 -m owner ! --gid-owner ${box_group} -j REJECT; do
       del_disable_quic
     done
   fi
@@ -449,8 +446,8 @@ description() {
   local event=$2
   version
   prop_file="/data/adb/modules/TTLink/module.prop"
-  core_name_box="$(basename "${bin_box}")"
-  core_name_xray="$(basename "${bin_xray}")"
+  core_name_box="${bin_box##*/}"
+  core_name_xray="${bin_xray##*/}"
   current_time=$(date "+[%m.%d %H:%M]")
   sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} work with ${core_name_xray} ${version_xray} ${network_mode} ${event}" "${prop_file}"
   log Info "${symbol} ${network_mode} ${event}" >>"${parent_dir}/log/run.log"
