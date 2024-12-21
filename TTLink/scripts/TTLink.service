@@ -471,8 +471,8 @@ ownership() {
 }
 
 launch_cores() {
-  ownership
   ulimit -SHn 1000000
+  ownership
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     if [[ "${network_mode}" == "tun" ]]; then
