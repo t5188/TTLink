@@ -470,8 +470,11 @@ ownership() {
 launch_cores() {
   ulimit -SHn 1000000
   ownership
+
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
+
     max_retries=5
+
     retry_xray=0
     while ((retry_xray < max_retries)); do
       nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
@@ -490,6 +493,7 @@ launch_cores() {
       log Error "Xray failed to start, reached maximum retry attempts, exiting script" >>"${parent_dir}/log/run.log"
       exit 1
     fi
+
     retry_box=0
     while ((retry_box < max_retries)); do
       nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
@@ -516,6 +520,7 @@ launch_cores() {
     fi
 
   else
+
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
       log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
       toast "Error: Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}"). Please check your installation."
@@ -526,6 +531,7 @@ launch_cores() {
       log Error "Binary missing: $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
       toast "Error: Missing binary $(basename "${bin_xray}"). Please check your installation."
     fi
+
   fi
 }
 
