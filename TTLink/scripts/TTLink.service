@@ -27,23 +27,19 @@ toast() {
 }
 
 disable_ipv6() {
-  sysctl -w net.ipv4.ip_forward=1
-  sysctl -w net.ipv6.conf.all.forwarding=0
-  sysctl -w net.ipv6.conf.all.accept_ra=0
-  sysctl -w net.ipv6.conf.wlan0.accept_ra=0
-  sysctl -w net.ipv6.conf.all.disable_ipv6=1
-  sysctl -w net.ipv6.conf.default.disable_ipv6=1
-  sysctl -w net.ipv6.conf.wlan0.disable_ipv6=1
+  echo 0 >/proc/sys/net/ipv6/conf/all/accept_ra
+  echo 0 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
+  echo 1 >/proc/sys/net/ipv6/conf/all/disable_ipv6
+  echo 1 >/proc/sys/net/ipv6/conf/default/disable_ipv6
+  echo 1 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
 }
 
 enable_ipv6() {
-  sysctl -w net.ipv4.ip_forward=1
-  sysctl -w net.ipv6.conf.all.forwarding=1
-  sysctl -w net.ipv6.conf.all.accept_ra=2
-  sysctl -w net.ipv6.conf.wlan0.accept_ra=2
-  sysctl -w net.ipv6.conf.all.disable_ipv6=0
-  sysctl -w net.ipv6.conf.default.disable_ipv6=0
-  sysctl -w net.ipv6.conf.wlan0.disable_ipv6=0
+  echo 1 >/proc/sys/net/ipv6/conf/all/accept_ra
+  echo 1 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
+  echo 0 >/proc/sys/net/ipv6/conf/all/disable_ipv6
+  echo 0 >/proc/sys/net/ipv6/conf/default/disable_ipv6
+  echo 0 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
 }
 
 device_index() {
