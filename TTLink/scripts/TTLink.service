@@ -126,6 +126,7 @@ dns_rules4tun() {
     fi
     ${ip} rule ${action1} fwmark 53 table ${index} priority 100
     ${ip} route ${action1} default dev ${device} table ${index}
+    log Info "${ip} DNS2TUN rule has been ${action}ed" >>"${parent_dir}/log/run.log"
     if [[ "${action}" != "-D" ]]; then
       ${iptables} -t mangle -N ${name}
       ${iptables} -t mangle -F ${name}
@@ -163,9 +164,11 @@ forward() {
     echo 2 >/proc/sys/net/ipv4/conf/all/rp_filter
     enable_ipv6
     ip_rules "add"
+    log Info "IP forwarding has been enabled" >>"${parent_dir}/log/run.log"
   elif [[ "${action}" == "-D" ]]; then
     disable_ipv6
     ip_rules "del"
+    log Info "IP forwarding has been disabled" >>"${parent_dir}/log/run.log"
   fi
   iptables_rules4tun "iptables" "${action}"
   iptables_rules4tun "ip6tables" "${action}"
@@ -189,6 +192,7 @@ initialize_uids() {
     uids+=("${box_user}" "${xray_user}")
   fi
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
+  log Info "UIDs have been initialized" >>"${parent_dir}/log/run.log"
 }
 
 uid_intervals() {
@@ -205,6 +209,7 @@ uid_intervals() {
   if [[ $previous -le $end ]]; then
     echo "${previous}-${end}"
   fi
+  log Info "UID intervals have been created" >>"${parent_dir}/log/run.log"
 }
 
 package_rules4tun() {
@@ -225,6 +230,7 @@ package_rules4tun() {
   else
     return
   fi
+  log Info "Package rules have been ${action}ed" >>"${parent_dir}/log/run.log"
 }
 
 iptables_rules() {
@@ -326,7 +332,7 @@ del_iptables_rules() {
       fi
     done
     if ! echo "$IPTABLES_DUMP" | grep -q -E "${4}_EXTERNAL|DIVERTSV|${4}_LOCAL"; then
-      log Info "All $(echo "${4}" | awk '{print $1}') chains have been deleted" >>"${parent_dir}/log/run.log"
+      log Info "All $(echo "${4}" | awk '{print $1}') chains have been removed" >>"${parent_dir}/log/run.log"
       break
     fi
     sleep 1
@@ -375,6 +381,7 @@ run_disable_quic() {
     disable_quic "${IPV}" "-I"
     disable_quic "${IP6V}" "-I"
   fi
+  log Info "QUIC has been disabled" >>"${parent_dir}/log/run.log"
 }
 
 del_disable_quic() {
@@ -382,6 +389,7 @@ del_disable_quic() {
     disable_quic "${IPV}" "-D"
     disable_quic "${IP6V}" "-D"
   fi
+  log Info "QUIC has been enabled" >>"${parent_dir}/log/run.log"
 }
 
 version() {
@@ -414,6 +422,7 @@ ownership() {
   chown root:net_admin ${bin_box} ${bin_xray}
   chmod o+rw ${public_log_dir}
   find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
+  log Info "Ownership has been set" >>"${parent_dir}/log/run.log"
 }
 
 launch_cores() {
