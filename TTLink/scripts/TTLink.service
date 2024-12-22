@@ -231,7 +231,6 @@ initialize_uids() {
     uids+=("${box_user}" "${xray_user}")
   fi
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
-  log Info "UIDs have been initialized" >>"${parent_dir}/log/run.log"
 }
 
 uid_intervals() {
@@ -248,7 +247,6 @@ uid_intervals() {
   if [[ $previous -le $end ]]; then
     echo "${previous}-${end}"
   fi
-  log Info "UID intervals have been created" >>"${parent_dir}/log/run.log"
 }
 
 package_rules4tun() {
