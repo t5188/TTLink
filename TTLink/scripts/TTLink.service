@@ -479,13 +479,13 @@ launch_cores() {
       package_rules4tun add
       [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
     fi
-    
-    pid=$(pidof "${bin_box}")
-    log Info "sing-box process (${pid}) started." >>"${parent_dir}/log/run.log"
-  
+
     pid=$(pidof "${bin_xray}")
     log Info "xray process (${pid}) started." >>"${parent_dir}/log/run.log"
-  
+
+    pid=$(pidof "${bin_box}")
+    log Info "sing-box process (${pid}) started." >>"${parent_dir}/log/run.log"
+
   else
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
       log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
@@ -501,13 +501,13 @@ launch_cores() {
 }
 
 shutdown_cores() {
-  pid=$(pidof "${bin_box}")
-  kill "${pid}" >/dev/null 2>&1
-  log Info "sing-box process (${pid}) terminated." >>"${parent_dir}/log/run.log"
-
   pid=$(pidof "${bin_xray}")
   kill "${pid}" >/dev/null 2>&1
   log Info "xray process (${pid}) terminated." >>"${parent_dir}/log/run.log"
+
+  pid=$(pidof "${bin_box}")
+  kill "${pid}" >/dev/null 2>&1
+  log Info "sing-box process (${pid}) terminated." >>"${parent_dir}/log/run.log"
 
   rm -f ${scripts_dir}/*.list
   find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
