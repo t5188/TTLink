@@ -2,12 +2,12 @@
 scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
 parent_dir=$(dirname ${scripts_dir})
-# Determines a path that can be used for relative path references.
+
 cd ${scripts_dir}
-# source file
+
 source ${scripts_dir}/settings.ini
 chain_name="BOX_XRAY"
-# check iptables_version
+
 ipt1=$(iptables --version | busybox awk '/^iptables/ {print $2}')
 ipt2="v1.6.1"
 var1=$(echo "$ipt1" | busybox sed 's/v//g; s/\.//g')
@@ -38,152 +38,105 @@ enable_ipv6() {
 }
 
 device_index() {
-  local max_retries=10 # Maximum number of retry attempts
-  local retry_count=0  # Initialize retry counter to 0
-  index=""             # Initialize index as an empty string
-
-  # Check if the temporary file 'tables.tmp' does not exist
+  local max_retries=10
+  local retry_count=0
+  index=""
   if [ ! -f "${scripts_dir}/tables.tmp" ]; then
-    # Extract the interface name from JSON configuration files
     device=$(awk -F'"' '/"interface_name"/ {print $4; exit}' ${box_confs_dir}/*.json)
-
-    # Loop until the index is found or the maximum number of retries is reached
     while [ -z "$index" ] && [ $retry_count -lt $max_retries ]; do
-      # Attempt to get the index from the routing table
       index=$(ip route show table all | grep -E "default dev ${device} table [0-9]" | head -n 1 | awk '{print $5}')
-
-      # If the index is found, break out of the loop
       if [ -n "$index" ]; then
         break
       fi
-
-      # If the index is not found, wait for 2 seconds and retry
       sleep 2
-      retry_count=$((retry_count + 1)) # Increment the retry counter
-      # Log the retry attempt
+      retry_count=$((retry_count + 1))
       log Info "Attempting to fetch index (Attempt ${retry_count}/${max_retries})" >>"${parent_dir}/log/run.log"
     done
-
-    # If the index is found, write the index and device to the temporary file 'tables.tmp'
     [[ -n "${index}" ]] && echo "${index} ${device}" >${scripts_dir}/tables.tmp
   fi
-
-  # Read the index and device values from the temporary file 'tables.tmp'
   read index device <"${scripts_dir}/tables.tmp"
 }
 
 ip_rules() {
-  device_index    # Call the device_index function to initialize device and index variables
-  local action=$1 # Get the action (e.g., add or delete) passed as the first argument
-
-  # Define IPv4 rules
+  device_index
+  local action=$1
   ipv4_rules=(
-    "iif lo goto 6000 priority 5000"                                           # If input interface is 'lo', go to rule with priority 6000
-    "iif ${device} lookup main suppress_prefixlength 0 priority 5010"          # If input interface is device, lookup main table, suppress prefix length, priority 5010
-    "iif ${device} goto 6000 priority 5020"                                    # If input interface is device, go to rule with priority 6000
-    "from 10.0.0.0/8 lookup ${index} priority 5030"                            # From 10.0.0.0/8 network, lookup table with index, priority 5030
-    "from 172.16.0.0/12 lookup ${index} priority 5040"                         # From 172.16.0.0/12 network, lookup table with index, priority 5040
-    "from 192.168.0.0/16 lookup ${index} priority 5050"                        # From 192.168.0.0/16 network, lookup table with index, priority 5050
-    "nop priority 6000"                                                        # No operation, priority 6000
-    "lookup main priority 7000"                                                # Lookup main table, priority 7000
-    "from all iif ${device} lookup main suppress_prefixlength 0 priority 8000" # From all, if input interface is device, lookup main table, suppress prefix length, priority 8000
+    "iif lo goto 6000 priority 5000"
+    "iif ${device} lookup main suppress_prefixlength 0 priority 5010"
+    "iif ${device} goto 6000 priority 5020"
+    "from 10.0.0.0/8 lookup ${index} priority 5030"
+    "from 172.16.0.0/12 lookup ${index} priority 5040"
+    "from 192.168.0.0/16 lookup ${index} priority 5050"
+    "nop priority 6000"
+    "lookup main priority 7000"
+    "from all iif ${device} lookup main suppress_prefixlength 0 priority 8000"
   )
-
-  # Iterate over IPv4 rules and apply the action
   for rule in "${ipv4_rules[@]}"; do
-    ip -4 rule "${action}" ${rule} # Apply the action (add/delete) to each rule
+    ip -4 rule "${action}" ${rule}
   done
-
-  # Define IPv6 rules
   ipv6_rules=(
-    "iif lo goto 6000 priority 5000"                                  # If input interface is 'lo', go to rule with priority 6000
-    "iif ${device} lookup main suppress_prefixlength 0 priority 5010" # If input interface is device, lookup main table, suppress prefix length, priority 5010
-    "iif ${device} goto 6000 priority 5020"                           # If input interface is device, go to rule with priority 6000
-    # "from 2001:db8::/32 lookup ${index} priority 5030"                         # From 2001:db8::/32 network, lookup table with index, priority 5030 (commented out)
-    # "from fc00::/7 lookup ${index} priority 5040"                              # From fc00::/7 network, lookup table with index, priority 5040 (commented out)
-    # "from fd00::/8 lookup ${index} priority 5050"                              # From fd00::/8 network, lookup table with index, priority 5050 (commented out)
-    "nop priority 6000"                                                        # No operation, priority 6000
-    "lookup main priority 7000"                                                # Lookup main table, priority 7000
-    "from all iif ${device} lookup main suppress_prefixlength 0 priority 8000" # From all, if input interface is device, lookup main table, suppress prefix length, priority 8000
+    "iif lo goto 6000 priority 5000"
+    "iif ${device} lookup main suppress_prefixlength 0 priority 5010"
+    "iif ${device} goto 6000 priority 5020"
+    #"from 2001:db8::/32 lookup ${index} priority 5030"
+    #"from fc00::/7 lookup ${index} priority 5040"
+    #"from fd00::/8 lookup ${index} priority 5050"
+    "nop priority 6000"
+    "lookup main priority 7000"
+    "from all iif ${device} lookup main suppress_prefixlength 0 priority 8000"
   )
-
-  # Iterate over IPv6 rules and apply the action
   for rule in "${ipv6_rules[@]}"; do
-    ip -6 rule "${action}" ${rule} # Apply the action (add/delete) to each rule
+    ip -6 rule "${action}" ${rule}
   done
 }
 
 iptables_rules4tun() {
-  local iptables=$1 # The iptables command to use (e.g., iptables or ip6tables)
-  local action=$2   # The action to perform (e.g., -I for insert, -D for delete)
-
+  local iptables=$1
+  local action=$2
   if [[ "${action}" == "-I" ]]; then
-    # Create the TUN_FORWARD chain if it doesn't exist
     ${iptables} -N TUN_FORWARD 2>/dev/null
-    # Flush any existing rules in the TUN_FORWARD chain
     ${iptables} -F TUN_FORWARD 2>/dev/null
-    # Insert rules to accept traffic on the TUN_FORWARD chain
     ${iptables} "${action}" TUN_FORWARD -i "${device}" -j ACCEPT
     ${iptables} "${action}" TUN_FORWARD -o "${device}" -j ACCEPT
-    # Insert the TUN_FORWARD chain into the FORWARD chain
     ${iptables} "${action}" FORWARD -j TUN_FORWARD
   elif [[ "${action}" == "-D" ]]; then
-    # Delete the TUN_FORWARD chain from the FORWARD chain
     ${iptables} "${action}" FORWARD -j TUN_FORWARD
-    # Flush any existing rules in the TUN_FORWARD chain
     ${iptables} -F TUN_FORWARD 2>/dev/null
-    # Delete the TUN_FORWARD chain
     ${iptables} -X TUN_FORWARD 2>/dev/null
   fi
-
-  # Block QUIC traffic (UDP ports 443 and 80) for all users except box_user and box_group
   ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
   ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
 }
 
 dns_rules4tun() {
-  local name="DNS2TUN" # Define the chain name for iptables
-  local ip=${1}        # The ip command to use (e.g., ip)
-  local iptables=${2}  # The iptables command to use (e.g., iptables)
-  local action=${3}    # The action to perform (e.g., -A for append, -D for delete)
-
-  # Check if the network mode is 'tun'
+  local name="DNS2TUN"
+  local ip=${1}
+  local iptables=${2}
+  local action=${3}
   if [[ "${network_mode}" == "tun" ]]; then
-
-    # Determine the corresponding action for the ip command
     if [[ "${action}" == "-A" ]]; then
       local action1="add"
     elif [[ "${action}" == "-D" ]]; then
       local action1="del"
     fi
-
-    # Add or delete an IP rule and route for fwmark 53
     ${ip} rule ${action1} fwmark 53 table ${index} priority 100
     ${ip} route ${action1} default dev ${device} table ${index}
-
-    # If the action is not delete, create and flush the DNS2TUN chain
     if [[ "${action}" != "-D" ]]; then
-      ${iptables} -t mangle -N ${name} # Create a new chain in the mangle table
-      ${iptables} -t mangle -F ${name} # Flush any existing rules in the chain
-      # Add rules to mark UDP and TCP traffic on port 53
+      ${iptables} -t mangle -N ${name}
+      ${iptables} -t mangle -F ${name}
       ${iptables} -t mangle ${action} ${name} -p udp --dport 53 -j MARK --set-mark 53
       ${iptables} -t mangle ${action} ${name} -p tcp --dport 53 -j MARK --set-mark 53
       log Info "${iptables} ${name} rule has been created" >>"${parent_dir}/log/run.log"
     fi
-
-    # Apply the DNS2TUN chain to the OUTPUT and PREROUTING chains
     ${iptables} -t mangle ${action} OUTPUT -j ${name}
     ${iptables} -t mangle ${action} PREROUTING -j ${name}
-
-    # If the action is delete, flush and delete the DNS2TUN chain
     if [[ "${action}" == "-D" ]]; then
-      ${iptables} -t mangle -F ${name} # Flush the chain
-      ${iptables} -t mangle -X ${name} # Delete the chain
+      ${iptables} -t mangle -F ${name}
+      ${iptables} -t mangle -X ${name}
       log Info "${iptables} ${name} rule has been removed" >>"${parent_dir}/log/run.log"
     fi
-
   else
-    return # If network mode is not 'tun', exit the function
+    return
   fi
 }
 
@@ -216,11 +169,9 @@ forward() {
 initialize_uids() {
   uid=""
   uids=()
-  # Remove the uids.list file if it exists
   if [ -f "${scripts_dir}/uids.list" ]; then
     rm "${scripts_dir}/uids.list"
   fi
-  # Loop through package_list to get UID and output it to uids.list
   for package_name in "${package_list[@]}"; do
     uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
     if [ -n "${uid}" ]; then
@@ -229,27 +180,23 @@ initialize_uids() {
     fi
   done
   sort -t ':' -k2 -n "${scripts_dir}/uids.list" -o "${scripts_dir}/uids.list"
-  # Add box_user and xray_user to the uids array, then sort it
   if [[ "${network_mode}" == "tun" && ${#package_list[@]} -eq 0 ]]; then
     uids+=("${box_user}" "${xray_user}")
   fi
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
 }
 
-uid_intervals() { # Output UID ranges, e.g., 12345-22345 22346-32346
+uid_intervals() {
   initialize_uids
   start=0
   end=999999
-
   previous=$start
   for uid in "${uids[@]}"; do
-    # If the current UID is greater than previous by 1, output the range
     if [[ $((uid - 1)) -ge $previous ]]; then
       echo "${previous}-$((uid - 1))"
     fi
     previous=$((uid + 1))
   done
-  # If the last UID is less than end, output the final range
   if [[ $previous -le $end ]]; then
     echo "${previous}-${end}"
   fi
@@ -258,19 +205,13 @@ uid_intervals() { # Output UID ranges, e.g., 12345-22345 22346-32346
 package_rules4tun() {
   local action=${1}
   stdout2array=()
-  # If in whitelist mode and stdout2array is not empty
   if [[ "${proxy_mode}" == "whitelist" ]] && [[ ${#package_list[@]} -gt 0 ]]; then
-    # Get the UID range output
     stdout2array=($(uid_intervals))
     for whiteapp in "${stdout2array[@]}"; do
       ip -4 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
     done
-    # If proxy_mode is in blacklist mode, execute the logic regardless of whether the array is empty or not;
-    # If proxy_mode is in whitelist mode, execute the logic only when the array is empty.
-  elif [[ "${proxy_mode}" == "blacklist" ]] && [[ ${#package_list[@]} -ge 0 ]] ||
-    [[ "${proxy_mode}" == "whitelist" ]] && [[ ${#package_list[@]} -eq 0 ]]; then
-    # Get the UID output
+  elif [[ "${proxy_mode}" == "blacklist" ]] && [[ ${#package_list[@]} -ge 0 ]] || [[ "${proxy_mode}" == "whitelist" ]] && [[ ${#package_list[@]} -eq 0 ]]; then
     initialize_uids
     for blackapp in "${uids[@]}"; do
       ip -4 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
@@ -281,56 +222,37 @@ package_rules4tun() {
   fi
 }
 
-# Function to create TPROXY rules
 iptables_rules() {
-  # Add a fwmark rule to the specified table with a calculated priority
   ${1} rule add fwmark "${fwmark}" table ${2} priority $((${2} * 10))
-  # Add a local route for the specified table
   ${1} route add local default dev lo table ${2}
-
-  # Create and flush custom chains in the mangle table
   ${3} -t mangle -N ${4}_EXTERNAL
   ${3} -t mangle -F ${4}_EXTERNAL
   ${3} -t mangle -N ${4}_LOCAL
   ${3} -t mangle -F ${4}_LOCAL
   ${3} -t mangle -N DIVERTSV
   ${3} -t mangle -F DIVERTSV
-
-  # Add rules to mark DNS traffic in the LOCAL chain
   ${3} -t mangle -A ${4}_LOCAL -p udp --dport 53 -j MARK --set-mark ${fwmark}
   ${3} -t mangle -A ${4}_LOCAL -p tcp --dport 53 -j MARK --set-mark ${fwmark}
-
-  # Add TPROXY rules for DNS traffic in the EXTERNAL chain
   ${3} -t mangle -A ${4}_EXTERNAL -p udp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
   ${3} -t mangle -A ${4}_EXTERNAL -p tcp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
-
-  # Add RETURN rules for specified subnets in both LOCAL and EXTERNAL chains
   for subnet in ${5}; do
     ${3} -t mangle -A ${4}_EXTERNAL -d ${subnet} -j RETURN
     ${3} -t mangle -A ${4}_LOCAL -d ${subnet} -j RETURN
   done
-
-  # Add TPROXY rules for loopback traffic in the EXTERNAL chain
   ${3} -t mangle -A ${4}_EXTERNAL -p tcp -i lo -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
   ${3} -t mangle -A ${4}_EXTERNAL -p udp -i lo -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
-
-  # Add TPROXY rules for specified access points if provided
   if [[ "${ap_list}" != "" ]]; then
     for ap in ${ap_list[@]}; do
       ${3} -t mangle -A ${4}_EXTERNAL -p tcp -i "${ap}" -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
       ${3} -t mangle -A ${4}_EXTERNAL -p udp -i "${ap}" -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
     done
   fi
-
-  # Add MARK rules for specified user IDs if provided
   if [[ -n "${AIDs}" ]]; then
     for AID in ${AIDs[*]}; do
       ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p tcp -j MARK --set-mark ${fwmark}
       ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p udp -j MARK --set-mark ${fwmark}
     done
   fi
-
-  # Handle proxy mode (blacklist or whitelist)
   case "${proxy_mode}" in
   "blacklist")
     if [[ ${#uids[@]} -gt 0 ]]; then
@@ -357,41 +279,28 @@ iptables_rules() {
     log Error "proxy_mode incorrect" >>"${parent_dir}/log/run.log"
     ;;
   esac
-
-  # Add loopback prevention rules
   ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${box_user} --gid-owner ${box_group} -j RETURN
   ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${xray_user} --gid-owner ${xray_group} -j RETURN
-
-  # Add DIVERTSV rules
   ${3} -t mangle -A DIVERTSV -j MARK --set-mark "${fwmark}"
   ${3} -t mangle -A DIVERTSV -j ACCEPT
-
-  # Reference custom chains in the PREROUTING and OUTPUT chains
   ${3} -t mangle -A PREROUTING -j ${4}_EXTERNAL
   ${3} -t mangle -I PREROUTING -p tcp -m socket -j DIVERTSV
   ${3} -t mangle -A OUTPUT -j ${4}_LOCAL
   log Info "All $(echo "${4}" | awk '{print $1}') chains have been created" >>"${parent_dir}/log/run.log"
 }
 
-# Function to execute proxy rules
 run_iptables_rules() {
   log Info "tp_port: ${tp_port}" >>"${parent_dir}/log/run.log"
   iptables_rules ip "${table}" "${IPV}" "${chain_name}" "${intranet[*]}" "${uids[*]}"
   iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6" "${intranet6[*]}" "${uids[*]}"
 }
 
-# Function to delete iptables rules
 del_iptables_rules() {
-  # Delete fwmark rule and route
   ${1} rule del fwmark "${fwmark}" table ${2} priority $((${2} * 10))
   ${1} route del local default dev lo table ${2}
   ${1} route flush table ${2}
-
   while true; do
-    # Preload the mangle table chain rules into a variable
     IPTABLES_DUMP=$(${3} -t mangle -L -nv)
-
-    # Remove references to custom chains
     if echo "$IPTABLES_DUMP" | grep -q "${4}_EXTERNAL"; then
       ${3} -t mangle -D PREROUTING -j ${4}_EXTERNAL
     fi
@@ -401,38 +310,29 @@ del_iptables_rules() {
     if echo "$IPTABLES_DUMP" | grep -q "${4}_LOCAL"; then
       ${3} -t mangle -D OUTPUT -j ${4}_LOCAL
     fi
-
-    # Flush custom chains
     for chain in "${4}_EXTERNAL" "DIVERTSV" "${4}_LOCAL"; do
       if ${3} -t mangle -L $chain -nv &>/dev/null; then
         ${3} -t mangle -F $chain
       fi
     done
-
-    # Delete custom chains
     for chain in "${4}_EXTERNAL" "DIVERTSV" "${4}_LOCAL"; do
       if ${3} -t mangle -L $chain -nv &>/dev/null; then
         ${3} -t mangle -X $chain
       fi
     done
-
-    # Confirm all chains have been deleted
     if ! echo "$IPTABLES_DUMP" | grep -q -E "${4}_EXTERNAL|DIVERTSV|${4}_LOCAL"; then
       log Info "All $(echo "${4}" | awk '{print $1}') chains have been deleted" >>"${parent_dir}/log/run.log"
       break
     fi
-
-    sleep 1 # Delay to avoid frequent looping
+    sleep 1
   done
 }
 
-# Function to execute delete proxy rules
 run_del_iptables_rules() {
   del_iptables_rules ip "${table}" "${IPV}" "${chain_name}"
   del_iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6"
 }
 
-# Function to create task
 cron_task() {
   if [[ "${crond_task}" == "true" ]]; then
     crontab_file="${scripts_dir}/root"
@@ -447,7 +347,6 @@ cron_task() {
   fi
 }
 
-# Function to delete task
 del_task() {
   if pgrep busybox crond >/dev/null; then
     kill -9 $(pgrep busybox crond)
@@ -455,20 +354,13 @@ del_task() {
   fi
 }
 
-# Disable QUIC
-quic="disable"
-
 disable_quic() {
-  # Add or delete iptables rules to block QUIC traffic for non-box_user and non-box_group
   ${1} ${2} OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
   ${1} ${2} OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
-
-  # If the action is delete (-D), ensure all matching rules are removed
   if [[ "${2}" == "-D" ]]; then
-    # Continue looping as long as at least one of the QUIC blocking rules exists
     while ${1} -C OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT ||
       ${1} -C OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT; do
-      del_disable_quic # Call a function to delete the QUIC blocking rules
+      del_disable_quic
     done
   fi
 }
@@ -487,7 +379,6 @@ del_disable_quic() {
   fi
 }
 
-# description
 version() {
   version_box=$(${bin_box} version | head -n 1 | awk '{print $3}')
   version_xray=$(${bin_xray} version | head -n 1 | awk '{print $2}')
