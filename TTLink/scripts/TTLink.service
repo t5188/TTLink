@@ -38,22 +38,37 @@ enable_ipv6() {
 }
 
 device_index() {
-  local max_retries=10
-  local retry_count=0
-  index=""
+  local max_retries=10 # Maximum number of retry attempts
+  local retry_count=0  # Initialize retry counter to 0
+  index=""             # Initialize index as an empty string
+
+  # Check if the temporary file 'tables.tmp' does not exist
   if [ ! -f "${scripts_dir}/tables.tmp" ]; then
+    # Extract the interface name from JSON configuration files
     device=$(awk -F'"' '/"interface_name"/ {print $4; exit}' ${box_confs_dir}/*.json)
+
+    # Loop until the index is found or the maximum number of retries is reached
     while [ -z "$index" ] && [ $retry_count -lt $max_retries ]; do
+      # Attempt to get the index from the routing table
       index=$(ip route show table all | grep -E "default dev ${device} table [0-9]" | head -n 1 | awk '{print $5}')
+
+      # If the index is found, break out of the loop
       if [ -n "$index" ]; then
         break
       fi
+
+      # If the index is not found, wait for 2 seconds and retry
       sleep 2
-      retry_count=$((retry_count + 1))
+      retry_count=$((retry_count + 1)) # Increment the retry counter
+      # Log the retry attempt
       log Info "Attempting to fetch index (Attempt ${retry_count}/${max_retries})" >>"${parent_dir}/log/run.log"
     done
+
+    # If the index is found, write the index and device to the temporary file 'tables.tmp'
     [[ -n "${index}" ]] && echo "${index} ${device}" >${scripts_dir}/tables.tmp
   fi
+
+  # Read the index and device values from the temporary file 'tables.tmp'
   read index device <"${scripts_dir}/tables.tmp"
 }
 
