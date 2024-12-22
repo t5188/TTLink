@@ -75,7 +75,14 @@ ip_rules() {
   for rule in "${ipv4_rules[@]}"; do
     ip -4 rule "${action}" ${rule}
   done
-  log Info "IPv4 rules have been ${action}ed" >>"${parent_dir}/log/run.log"
+  case "${action}" in
+  "add" | "-A" | "-I")
+    log Info "IPv4 rules have been created" >>"${parent_dir}/log/run.log"
+    ;;
+  "del" | "-D")
+    log Info "IPv4 rules have been removed" >>"${parent_dir}/log/run.log"
+    ;;
+  esac
   ipv6_rules=(
     "iif lo goto 6000 priority 5000"
     "iif ${device} lookup main suppress_prefixlength 0 priority 5010"
@@ -90,7 +97,14 @@ ip_rules() {
   for rule in "${ipv6_rules[@]}"; do
     ip -6 rule "${action}" ${rule}
   done
-  log Info "IPv6 rules have been ${action}ed" >>"${parent_dir}/log/run.log"
+  case "${action}" in
+  "add" | "-A" | "-I")
+    log Info "IPv6 rules have been created" >>"${parent_dir}/log/run.log"
+    ;;
+  "del" | "-D")
+    log Info "IPv6 rules have been removed" >>"${parent_dir}/log/run.log"
+    ;;
+  esac
 }
 
 iptables_rules4tun() {
@@ -107,10 +121,24 @@ iptables_rules4tun() {
     ${iptables} -F TUN_FORWARD 2>/dev/null
     ${iptables} -X TUN_FORWARD 2>/dev/null
   fi
-  log Info "${iptables} TUN_FORWARD chain has been ${action}ed" >>"${parent_dir}/log/run.log"
+  case "${action}" in
+  "add" | "-A" | "-I")
+    log Info "${iptables} TUN_FORWARD chain has been created" >>"${parent_dir}/log/run.log"
+    ;;
+  "del" | "-D")
+    log Info "${iptables} TUN_FORWARD chain has been removed" >>"${parent_dir}/log/run.log"
+    ;;
+  esac
   ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
   ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
-  log Info "${iptables} QUIC has been ${action}ed" >>"${parent_dir}/log/run.log"
+  case "${action}" in
+  "add" | "-A" | "-I")
+    log Info "${iptables} QUIC has been created" >>"${parent_dir}/log/run.log"
+    ;;
+  "del" | "-D")
+    log Info "${iptables} QUIC has been removed" >>"${parent_dir}/log/run.log"
+    ;;
+  esac
 }
 
 dns_rules4tun() {
@@ -126,13 +154,24 @@ dns_rules4tun() {
     fi
     ${ip} rule ${action1} fwmark 53 table ${index} priority 100
     ${ip} route ${action1} default dev ${device} table ${index}
-    log Info "${ip} DNS2TUN rule has been ${action}ed" >>"${parent_dir}/log/run.log"
+    case "${action1}" in
+    "add" | "-A" | "-I")
+      log Info "${ip} DNS2TUN rule has been created" >>"${parent_dir}/log/run.log"
+      ;;
+    "del" | "-D")
+      log Info "${ip} DNS2TUN rule has been removed" >>"${parent_dir}/log/run.log"
+      ;;
+    esac
     if [[ "${action}" != "-D" ]]; then
       ${iptables} -t mangle -N ${name}
       ${iptables} -t mangle -F ${name}
       ${iptables} -t mangle ${action} ${name} -p udp --dport 53 -j MARK --set-mark 53
       ${iptables} -t mangle ${action} ${name} -p tcp --dport 53 -j MARK --set-mark 53
-      log Info "${iptables} ${name} rule has been created" >>"${parent_dir}/log/run.log"
+      case "${action1}" in
+      "add" | "-A" | "-I")
+        log Info "${iptables} ${name} rule has been created" >>"${parent_dir}/log/run.log"
+        ;;
+      esac
     fi
     ${iptables} -t mangle ${action} OUTPUT -j ${name}
     ${iptables} -t mangle ${action} PREROUTING -j ${name}
@@ -230,7 +269,14 @@ package_rules4tun() {
   else
     return
   fi
-  log Info "Package rules have been ${action}ed" >>"${parent_dir}/log/run.log"
+  case "${action}" in
+  "add" | "-A" | "-I")
+    log Info "Package rules have been created" >>"${parent_dir}/log/run.log"
+    ;;
+  "del" | "-D")
+    log Info "Package rules have been removed" >>"${parent_dir}/log/run.log"
+    ;;
+  esac
 }
 
 iptables_rules() {
