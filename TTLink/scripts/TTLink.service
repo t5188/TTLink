@@ -227,7 +227,9 @@ initialize_uids() {
     fi
   done
   sort -t ':' -k2 -n "${scripts_dir}/uids.list" -o "${scripts_dir}/uids.list"
-  [[ ${#package_list[@]} -gt 0 ]] && uids+=("${box_user}" "${xray_user}")
+  if [[ "${network_mode}" == "tun" && ${#package_list[@]} -eq 0 ]]; then
+    uids+=("${box_user}" "${xray_user}")
+  fi
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
 }
 
@@ -471,13 +473,13 @@ launch_cores() {
   ulimit -SHn 1000000
   ownership
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
-    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/rules/ >/dev/null 2>&1 &
     if [[ "${network_mode}" == "tun" ]]; then
       forward -I
       uid_rules4tun add
       [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
     fi
+    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     pid=$(pidof "${bin_xray}")
     log Info "xray process (${pid}) started." >>"${parent_dir}/log/run.log"
     pid=$(pidof "${bin_box}")
@@ -572,26 +574,22 @@ InboundsChange() {
     }]' -i --output-format=json "${box_config_file}"
     tp_port=$(awk -F':' '/"listen_port"/ {gsub(/[^0-9]/, "", $NF); print $NF; exit}' "${box_confs_dir}"/*.json 2>/dev/null)
   else
-    $yq ".inbounds = [{
-      \"type\": \"tun\",
-      \"tag\": \"tun-in\",
-      \"interface_name\": \"tun0\",
-      \"mtu\": 1400,
-      \"auto_route\": true,
-      \"strict_route\": true,
-      \"endpoint_independent_nat\": true,
-      \"address\": [
-        \"172.18.0.1/30\",
-        \"fdfe:dcba:9876::1/126\"
+    $yq '.inbounds = [{
+      "type": "tun",
+      "tag": "tun-in",
+      "interface_name": "tun0",
+      "mtu": 1400,
+      "auto_route": true,
+      "strict_route": true,
+      "endpoint_independent_nat": true,
+      "address": [
+        "172.18.0.1/30",
+        "fdfe:dcba:9876::1/126"
       ],
-      \"exclude_uid_range\": [
-        \"${box_user}:${box_user}\",
-        \"${xray_user}:${xray_user}\"
-      ],
-      \"stack\": \"system\",
-      \"sniff\": true,
-      \"sniff_override_destination\": true
-    }]" -i --output-format=json "${box_config_file}"
+      "stack": "system",
+      "sniff": true,
+      "sniff_override_destination": true
+    }]' -i --output-format=json "${box_config_file}"
   fi
 }
 
