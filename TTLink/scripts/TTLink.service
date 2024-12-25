@@ -227,7 +227,7 @@ initialize_uids() {
     fi
   done
   sort -t ':' -k2 -n "${scripts_dir}/uids.list" -o "${scripts_dir}/uids.list"
-  uids+=("${box_user}" "${xray_user}")
+  [[ ${#package_list[@]} -gt 0 ]] && uids+=("${box_user}" "${xray_user}")
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
 }
 
