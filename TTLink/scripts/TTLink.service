@@ -152,7 +152,7 @@ dns_rules4tun() {
     elif [[ "${action}" == "-D" ]]; then
       local action1="del"
     fi
-    ${ip} rule ${action1} fwmark 53 table ${index} priority 100
+    ${ip} rule ${action1} fwmark 53 table ${index} priority 1000
     ${ip} route ${action1} default dev ${device} table ${index}
     case "${action1}" in
     "add" | "-A" | "-I")
