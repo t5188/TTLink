@@ -1,4 +1,4 @@
-name: Build yq
+name: Upyq
 
 on:
   workflow_dispatch:  # 支持手动触发
