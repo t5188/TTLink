@@ -61,15 +61,48 @@ device_index() {
 ip_rules() {
   device_index
   local action=$1
-  ip -4 rule "${action}" lookup main suppress_prefixlength 0 priority 7000
-  ip -6 rule "${action}" lookup main suppress_prefixlength 0 priority 7000
-  
+  ipv4_rules=(
+    "iif lo goto 6000 priority 5000"
+    "iif ${device} lookup main suppress_prefixlength 0 priority 5010"
+    "iif ${device} goto 6000 priority 5020"
+    "from 10.0.0.0/8 lookup ${index} priority 5030"
+    "from 172.16.0.0/12 lookup ${index} priority 5040"
+    "from 192.168.0.0/16 lookup ${index} priority 5050"
+    "nop priority 6000"
+    "lookup main priority 7000"
+    "from all iif ${device} lookup main suppress_prefixlength 0 priority 8000"
+  )
+  for rule in "${ipv4_rules[@]}"; do
+    ip -4 rule "${action}" ${rule}
+  done
   case "${action}" in
   "add" | "-A" | "-I")
-    log Info "IP rules have been created" >>"${parent_dir}/log/run.log"
+    log Info "IPv4 rules have been created" >>"${parent_dir}/log/run.log"
     ;;
   "del" | "-D")
-    log Info "IP rules have been removed" >>"${parent_dir}/log/run.log"
+    log Info "IPv4 rules have been removed" >>"${parent_dir}/log/run.log"
+    ;;
+  esac
+  ipv6_rules=(
+    "iif lo goto 6000 priority 5000"
+    "iif ${device} lookup main suppress_prefixlength 0 priority 5010"
+    "iif ${device} goto 6000 priority 5020"
+    #"from 2001:db8::/32 lookup ${index} priority 5030"
+    #"from fc00::/7 lookup ${index} priority 5040"
+    #"from fd00::/8 lookup ${index} priority 5050"
+    "nop priority 6000"
+    "lookup main priority 7000"
+    "from all iif ${device} lookup main suppress_prefixlength 0 priority 8000"
+  )
+  for rule in "${ipv6_rules[@]}"; do
+    ip -6 rule "${action}" ${rule}
+  done
+  case "${action}" in
+  "add" | "-A" | "-I")
+    log Info "IPv6 rules have been created" >>"${parent_dir}/log/run.log"
+    ;;
+  "del" | "-D")
+    log Info "IPv6 rules have been removed" >>"${parent_dir}/log/run.log"
     ;;
   esac
 }
