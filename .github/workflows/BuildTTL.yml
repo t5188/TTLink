@@ -48,12 +48,12 @@ jobs:
           git commit -m "Update update.json for version $(grep -oP 'version=\K[^ ]+' module.prop)" || true
           git push -f origin main
 
-       # Step 4: Update module.prop file
+       # Step 6: Update module.prop file
       - name: Update module.prop
         run: |
           sed -i "s|^updateJson=.*|updateJson=https://github.com/t5188/${{ env.REPO_NAME }}/raw/main/update.json|g" module.prop
 
-      # Step 5: Commit and push module.prop
+      # Step 7: Commit and push module.prop
       - name: Commit and push module.prop
         run: |
           git config --local user.name "t5188"
@@ -62,11 +62,11 @@ jobs:
           git commit -m "Update module.prop with repository name"
           git push         
 
-      # Step 6: Run the build.sh script
+      # Step 8: Run the build.sh script
       - name: Run build.sh
         run: sh build.sh
 
-      # Step 7: Extract version from the filename of the zip file
+      # Step 9: Extract version from the filename of the zip file
       - name: Extract version from filename
         id: extract_version
         run: |
@@ -74,7 +74,7 @@ jobs:
           version=$(echo "$zip_file" | sed -E 's/TTLink-v(.*).zip/v\1/')
           echo "VERSION=${version}" >> $GITHUB_ENV
 
-      # Step 8: Read release notes from CHANGELOG.md
+      # Step 10: Read release notes from CHANGELOG.md
       - name: Read release notes from CHANGELOG.md
         id: get_release_notes
         run: |
@@ -83,7 +83,7 @@ jobs:
           echo "$RELEASE_NOTES" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      # Step 10: Upload the new release
+      # Step 11: Upload the new release
       - name: Upload release
         uses: softprops/action-gh-release@v1
         if: ${{ success() }}
