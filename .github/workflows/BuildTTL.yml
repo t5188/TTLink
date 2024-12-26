@@ -46,7 +46,7 @@ jobs:
           git config --local user.email "acstudycn@gmail.com"
           git add update.json
           git commit -m "Update update.json for version $(grep -oP 'version=\K[^ ]+' module.prop)" || true
-          git push -f origin main
+          git push origin main
 
        # Step 6: Update module.prop file
       - name: Update module.prop
@@ -60,7 +60,7 @@ jobs:
           git config --local user.email "acstudycn@gmail.com"
           git add module.prop
           git commit -m "Update module.prop with repository name"
-          git push         
+          git push origin main
 
       # Step 8: Run the build.sh script
       - name: Run build.sh
