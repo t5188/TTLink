@@ -48,6 +48,20 @@ jobs:
           git commit -m "Update update.json for version $(grep -oP 'version=\K[^ ]+' module.prop)" || true
           git push -f origin main
 
+       # Step 4: Update module.prop file
+      - name: Update module.prop
+        run: |
+          sed -i "s|^updateJson=.*|updateJson=https://github.com/t5188/${{ env.REPO_NAME }}/raw/main/update.json|g" module.prop
+
+      # Step 5: Commit and push module.prop
+      - name: Commit and push module.prop
+        run: |
+          git config --local user.name "t5188"
+          git config --local user.email "acstudycn@gmail.com"
+          git add module.prop
+          git commit -m "Update module.prop with repository name"
+          git push         
+
       # Step 6: Run the build.sh script
       - name: Run build.sh
         run: sh build.sh
