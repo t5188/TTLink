@@ -59,8 +59,12 @@ jobs:
           git config --local user.name "t5188"
           git config --local user.email "acstudycn@gmail.com"
           git add module.prop
-          git commit -m "Update module.prop with repository name"
-          git push origin main
+          if git diff-index --quiet HEAD --; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update module.prop with repository name"
+            git push origin main
+          fi
 
       # Step 8: Run the build.sh script
       - name: Run build.sh
@@ -94,3 +98,4 @@ jobs:
           prerelease: false # Ensure the release is not a pre-release
           draft: false  # Ensure the release is not a draft
           generate_release_notes: false
+          
