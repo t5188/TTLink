@@ -1,9 +1,9 @@
-# Version 2.2
+# Version 2.3
 
 ## 更新说明
 
 本版本包含以下内容：
 
-- 修复xray流量误入box的bug（和2.1的区别是调整内核的启动顺序,不利用box的"exclude_uid_range"）
+- 清理不必要的ip rule
 
 - -------------------
