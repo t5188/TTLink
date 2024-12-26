@@ -1,7 +1,7 @@
 id=TTLink
 name=TTLink
-version=v2.2
-versionCode=20241225
+version=v2.3
+versionCode=20241227
 author=Tony
-description=Tproxy and tun; sing-box work with xray; Created on 12 25, 2024.
+description=Tproxy and tun; sing-box work with xray.
 updateJson=https://github.com/t5188/TTLink/raw/main/update.json
