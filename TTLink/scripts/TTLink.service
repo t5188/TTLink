@@ -70,7 +70,6 @@ ip_rules() {
     "from 192.168.0.0/16 lookup ${index} priority 5050"
     "nop priority 6000"
     "lookup main priority 7000"
-    "iif ${device} lookup main suppress_prefixlength 0 priority 8000"
   )
   for rule in "${ipv4_rules[@]}"; do
     ip -4 rule "${action}" ${rule}
@@ -92,7 +91,6 @@ ip_rules() {
     #"from fd00::/8 lookup ${index} priority 5050"
     "nop priority 6000"
     "lookup main priority 7000"
-    "iif ${device} lookup main suppress_prefixlength 0 priority 8000"
   )
   for rule in "${ipv6_rules[@]}"; do
     ip -6 rule "${action}" ${rule}
