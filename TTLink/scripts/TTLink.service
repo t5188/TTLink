@@ -544,11 +544,11 @@ stop_tun() {
   toast "TUN已关闭"
 }
 
-start_tproxy() {
+start_trp() {
   log Info "---welcome---" >"${parent_dir}/log/run.log"
   if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
     log Info "Close existing processes"
-    stop_tproxy
+    stop_trp
     log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
   init_uids
@@ -559,7 +559,7 @@ start_tproxy() {
   toast "TP已开启"
 }
 
-stop_tproxy() {
+stop_trp() {
   if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
     exit 1
   fi
@@ -571,7 +571,7 @@ stop_tproxy() {
   toast "TP已关闭"
 }
 
-InboundsChange() {
+InChange() {
   if [[ "${network_mode}" == "tproxy" ]]; then
     $yq '.inbounds = [{
       "type": "tproxy",
@@ -605,18 +605,18 @@ InboundsChange() {
 case "$1" in
 enable)
   if [[ "${network_mode}" == "tproxy" ]]; then
-    InboundsChange
-    start_tproxy
+    InChange
+    start_trp
     run_description
   else
-    InboundsChange
+    InChange
     start_tun
     run_description
   fi
   ;;
 disable)
   if [[ "${network_mode}" == "tproxy" ]]; then
-    stop_tproxy
+    stop_trp
     run_description
   else
     stop_tun
