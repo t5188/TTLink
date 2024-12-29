@@ -105,7 +105,7 @@ ip_rules() {
   esac
 }
 
-iptables_rules4tun() {
+iptables_tun() {
   local iptables=$1
   local action=$2
   if [[ "${action}" == "-I" ]]; then
@@ -139,7 +139,7 @@ iptables_rules4tun() {
   esac
 }
 
-dns_rules() {
+dns_tun() {
   local name="DNS2TUN"
   local ip=${1}
   local iptables=${2}
@@ -183,14 +183,14 @@ dns_rules() {
   fi
 }
 
-execute_dns_rules() {
-  dns_rules "ip -4" "iptables" "-A"
-  dns_rules "ip -6" "ip6tables" "-A"
+exec_dns_tun() {
+  dns_tun "ip -4" "iptables" "-A"
+  dns_tun "ip -6" "ip6tables" "-A"
 }
 
-remove_dns_rules() {
-  dns_rules "ip -4" "iptables" "-D"
-  dns_rules "ip -6" "ip6tables" "-D"
+rm_dns_tun() {
+  dns_tun "ip -4" "iptables" "-D"
+  dns_tun "ip -6" "ip6tables" "-D"
 }
 
 forward() {
@@ -207,8 +207,8 @@ forward() {
     ip_rules "del"
     log Info "IP forwarding has been disabled" >>"${parent_dir}/log/run.log"
   fi
-  iptables_rules4tun "iptables" "${action}"
-  iptables_rules4tun "ip6tables" "${action}"
+  iptables_tun "iptables" "${action}"
+  iptables_tun "ip6tables" "${action}"
 }
 
 init_uids() {
@@ -486,7 +486,7 @@ launch_cores() {
     if [[ "${network_mode}" == "tun" ]]; then
       forward -I
       uidrange add
-      [[ "${dns2tun}" == "true" ]] && execute_dns_rules
+      [[ "${dns2tun}" == "true" ]] && exec_dns_tun
     fi
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     pid=$(pidof "${bin_xray}")
@@ -536,7 +536,7 @@ stop_tun() {
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
   forward -D
-  [[ "${dns2tun}" == "true" ]] && remove_dns_rules
+  [[ "${dns2tun}" == "true" ]] && rm_dns_tun
   uidrange del
   rm -f ${scripts_dir}/tables.tmp
   del_task
