@@ -278,6 +278,7 @@ uid_rules() {
   case "${action}" in
   "add" | "-A" | "-I")
     log Info "Package rules have been created" >>"${parent_dir}/log/run.log"
+    log Info "proxy_mode: ${proxy_mode}" >>"${parent_dir}/log/run.log"
     ;;
   "del" | "-D")
     log Info "Package rules have been removed" >>"${parent_dir}/log/run.log"
