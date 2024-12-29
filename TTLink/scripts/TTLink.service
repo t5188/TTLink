@@ -312,7 +312,7 @@ iptables_rules() {
     done
   fi
   if [[ -n "${AIDs}" ]]; then
-    for AID in ${AIDs[*]}; do
+    for AID in ${AIDs[@]}; do
       ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p tcp -j MARK --set-mark ${fwmark}
       ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p udp -j MARK --set-mark ${fwmark}
     done
