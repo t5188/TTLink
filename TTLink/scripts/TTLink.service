@@ -397,7 +397,7 @@ run_del_trp() {
   del_trp "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6"
 }
 
-cron_task() {
+add_cron() {
   if [[ "${crond_task}" == "true" ]]; then
     crontab_file="${scripts_dir}/root"
     if pgrep busybox crond >/dev/null; then
@@ -411,7 +411,7 @@ cron_task() {
   fi
 }
 
-del_task() {
+del_cron() {
   if pgrep busybox crond >/dev/null; then
     kill -9 $(pgrep busybox crond)
     rm ${scripts_dir}/root >/dev/null 2>&1
@@ -526,7 +526,7 @@ start_tun() {
     log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
   launch_cores
-  cron_task
+  add_cron
   toast "TUN已启动"
 }
 
@@ -539,7 +539,7 @@ stop_tun() {
   [[ "${dns2tun}" == "true" ]] && rm_dns_tun
   uidrange del
   rm -f ${scripts_dir}/tables.tmp
-  del_task
+  del_cron
   shutdown_cores
   toast "TUN已关闭"
 }
@@ -555,7 +555,7 @@ start_tproxy() {
   run_add_trp
   run_disable_quic
   launch_cores
-  cron_task
+  add_cron
   toast "TP已开启"
 }
 
@@ -566,7 +566,7 @@ stop_tproxy() {
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
   run_del_trp >/dev/null 2>&1
   del_disable_quic
-  del_task
+  del_cron
   shutdown_cores
   toast "TP已关闭"
 }
