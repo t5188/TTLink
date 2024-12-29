@@ -139,7 +139,7 @@ iptables_rules4tun() {
   esac
 }
 
-dns_rules4tun() {
+dns_rules() {
   local name="DNS2TUN"
   local ip=${1}
   local iptables=${2}
@@ -183,14 +183,14 @@ dns_rules4tun() {
   fi
 }
 
-execute_dns_rules4tun() {
-  dns_rules4tun "ip -4" "iptables" "-A"
-  dns_rules4tun "ip -6" "ip6tables" "-A"
+execute_dns_rules() {
+  dns_rules "ip -4" "iptables" "-A"
+  dns_rules "ip -6" "ip6tables" "-A"
 }
 
-remove_dns_rules4tun() {
-  dns_rules4tun "ip -4" "iptables" "-D"
-  dns_rules4tun "ip -6" "ip6tables" "-D"
+remove_dns_rules() {
+  dns_rules "ip -4" "iptables" "-D"
+  dns_rules "ip -6" "ip6tables" "-D"
 }
 
 forward() {
@@ -228,7 +228,7 @@ init_uids() {
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
 }
 
-uid_intervals() {
+uid_ranges() {
   init_uids
   start=0
   end=999999
@@ -244,12 +244,12 @@ uid_intervals() {
   fi
 }
 
-uid_rules4tun() {
+uid_rules() {
   local action=${1}
   stdout2array=()
 
   if [[ "${proxy_mode}" == "whitelist" ]] && [[ ${#package_list[@]} -gt 0 ]]; then
-    stdout2array=($(uid_intervals))
+    stdout2array=($(uid_ranges))
     for whiteapp in "${stdout2array[@]}"; do
       ip -4 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
@@ -484,8 +484,8 @@ launch_cores() {
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/rules/ >/dev/null 2>&1 &
     if [[ "${network_mode}" == "tun" ]]; then
       forward -I
-      uid_rules4tun add
-      [[ "${dns2tun}" == "true" ]] && execute_dns_rules4tun
+      uid_rules add
+      [[ "${dns2tun}" == "true" ]] && execute_dns_rules
     fi
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
     pid=$(pidof "${bin_xray}")
@@ -535,8 +535,8 @@ stop_tun() {
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
   forward -D
-  [[ "${dns2tun}" == "true" ]] && remove_dns_rules4tun
-  uid_rules4tun del
+  [[ "${dns2tun}" == "true" ]] && remove_dns_rules
+  uid_rules del
   rm -f ${scripts_dir}/tables.tmp
   del_task
   shutdown_cores
