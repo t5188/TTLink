@@ -225,9 +225,6 @@ initialize_uids() {
     fi
   done
   sort -t ':' -k2 -n "${scripts_dir}/uids.list" -o "${scripts_dir}/uids.list"
-  if [[ "${network_mode}" == "tun" && ${#package_list[@]} -eq 0 ]]; then
-    uids+=("${box_user}" "${xray_user}")
-  fi
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
 }
 
@@ -250,21 +247,34 @@ uid_intervals() {
 uid_rules4tun() {
   local action=${1}
   stdout2array=()
+
   if [[ "${proxy_mode}" == "whitelist" ]] && [[ ${#package_list[@]} -gt 0 ]]; then
     stdout2array=($(uid_intervals))
     for whiteapp in "${stdout2array[@]}"; do
       ip -4 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${whiteapp} priority 9000 goto 9010
     done
-  elif [[ "${proxy_mode}" == "blacklist" ]] && [[ ${#package_list[@]} -ge 0 ]] || [[ "${proxy_mode}" == "whitelist" ]] && [[ ${#package_list[@]} -eq 0 ]]; then
+
+  elif [[ "${proxy_mode}" == "blacklist" ]] && [[ ${#package_list[@]} -gt 0 ]]; then
     initialize_uids
+    uids+=("${box_user}" "${xray_user}")
+    uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
     for blackapp in "${uids[@]}"; do
       ip -4 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
     done
+
+  elif [[ ${#package_list[@]} -eq 0 ]]; then
+    uids=("${box_user}" "${xray_user}")
+    for users in "${uids[@]}"; do
+      ip -4 rule ${action} from all uidrange ${users}-${users} priority 9000 goto 9010
+      ip -6 rule ${action} from all uidrange ${users}-${users} priority 9000 goto 9010
+    done
+
   else
     return
   fi
+
   case "${action}" in
   "add" | "-A" | "-I")
     log Info "Package rules have been created" >>"${parent_dir}/log/run.log"
