@@ -211,7 +211,7 @@ forward() {
   iptables_rules4tun "ip6tables" "${action}"
 }
 
-initialize_uids() {
+init_uids() {
   uid=""
   uids=()
   if [ -f "${scripts_dir}/uids.list" ]; then
@@ -229,7 +229,7 @@ initialize_uids() {
 }
 
 uid_intervals() {
-  initialize_uids
+  init_uids
   start=0
   end=999999
   previous=$start
@@ -256,7 +256,7 @@ uid_rules4tun() {
     done
 
   elif [[ "${proxy_mode}" == "blacklist" ]] && [[ ${#package_list[@]} -gt 0 ]]; then
-    initialize_uids
+    init_uids
     uids+=("${box_user}" "${xray_user}")
     uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
     for blackapp in "${uids[@]}"; do
@@ -550,7 +550,7 @@ start_tproxy() {
     stop_tproxy
     log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
-  initialize_uids
+  init_uids
   run_iptables_rules
   run_disable_quic
   launch_cores
