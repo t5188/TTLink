@@ -105,7 +105,7 @@ ip_rules() {
   esac
 }
 
-iptables_tun() {
+ipt_tun() {
   local iptables=$1
   local action=$2
   if [[ "${action}" == "-I" ]]; then
@@ -207,8 +207,8 @@ forward() {
     ip_rules "del"
     log Info "IP forwarding has been disabled" >>"${parent_dir}/log/run.log"
   fi
-  iptables_tun "iptables" "${action}"
-  iptables_tun "ip6tables" "${action}"
+  ipt_tun "iptables" "${action}"
+  ipt_tun "ip6tables" "${action}"
 }
 
 init_uids() {
@@ -286,7 +286,7 @@ uidrange() {
   esac
 }
 
-iptables_rules() {
+ipt_trp() {
   ${1} rule add fwmark "${fwmark}" table ${2} priority $((${2} * 10))
   ${1} route add local default dev lo table ${2}
   ${3} -t mangle -N ${4}_EXTERNAL
@@ -353,13 +353,13 @@ iptables_rules() {
   log Info "All $(echo "${4}" | awk '{print $1}') chains have been created" >>"${parent_dir}/log/run.log"
 }
 
-run_iptables_rules() {
+run_ipt_trp() {
   log Info "tp_port: ${tp_port}" >>"${parent_dir}/log/run.log"
-  iptables_rules ip "${table}" "${IPV}" "${chain_name}" "${intranet[*]}" "${uids[*]}"
-  iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6" "${intranet6[*]}" "${uids[*]}"
+  ipt_trp ip "${table}" "${IPV}" "${chain_name}" "${intranet[*]}" "${uids[*]}"
+  ipt_trp "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6" "${intranet6[*]}" "${uids[*]}"
 }
 
-del_iptables_rules() {
+del_ipt_trp() {
   ${1} rule del fwmark "${fwmark}" table ${2} priority $((${2} * 10))
   ${1} route del local default dev lo table ${2}
   ${1} route flush table ${2}
@@ -392,9 +392,9 @@ del_iptables_rules() {
   done
 }
 
-run_del_iptables_rules() {
-  del_iptables_rules ip "${table}" "${IPV}" "${chain_name}"
-  del_iptables_rules "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6"
+run_del_ipt_trp() {
+  del_ipt_trp ip "${table}" "${IPV}" "${chain_name}"
+  del_ipt_trp "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6"
 }
 
 cron_task() {
@@ -552,7 +552,7 @@ start_tproxy() {
     log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
   init_uids
-  run_iptables_rules
+  run_ipt_trp
   run_disable_quic
   launch_cores
   cron_task
@@ -564,7 +564,7 @@ stop_tproxy() {
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
-  run_del_iptables_rules >/dev/null 2>&1
+  run_del_ipt_trp >/dev/null 2>&1
   del_disable_quic
   del_task
   shutdown_cores
