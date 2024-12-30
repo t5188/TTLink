@@ -405,9 +405,9 @@ add_cron() {
     fi
     echo '5 0,12 * * * touch /data/adb/modules/TTLink/disable && sleep 3 && rm /data/adb/modules/TTLink/disable' >${crontab_file}
     nohup busybox crond -c ${scripts_dir}/ >/dev/null 2>&1 &
-    log Info "New task: $(busybox crontab -l -c ${scripts_dir}/)"
+    log Info "New task: $(busybox crontab -l -c ${scripts_dir}/)" >>"${parent_dir}/log/run.log"
   else
-    log Warn "crond_task is not set to true. No crond task created."
+    log Warn "crond_task is not set to true. No crond task created." >>"${parent_dir}/log/run.log"
   fi
 }
 
