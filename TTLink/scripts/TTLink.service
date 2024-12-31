@@ -487,7 +487,7 @@ launch_cores() {
       uidrange add
       [[ "${dns2tun}" == "true" ]] && exec_dns_tun
     fi
-    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confs_dir} >/dev/null 2>&1 &
+    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confx_dir} >/dev/null 2>&1 &
     pid=$(pidof "${bin_xray}")
     log Info "xray process (${pid}) started." >>"${parent_dir}/log/run.log"
     pid=$(pidof "${bin_box}")
