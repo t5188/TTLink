@@ -74,7 +74,11 @@ rm_block_loopback() {
   done
 }
 
-if [[ "$events" == "w" && ! -f "${module_dir}/disable" && "$network_mode" == "tproxy" ]]; then
+if [[ -f "${module_dir}/disable" ]]; then
+  exit 0
+fi
+
+if [[ "$events" == "w" && "$network_mode" == "tproxy" ]]; then
   rm_block_loopback
   wait
   run_block_loopback
