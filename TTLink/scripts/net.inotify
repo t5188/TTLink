@@ -21,13 +21,14 @@ else
   IP6V="ip6tables"
 fi
 
-chain_name="BLOCK_LOOPBACK"
+block_name="BLOCK_LOOPBACK"
 
 block_loopback() {
   local iptables=${1}
   local action=${2}
   local name=${3}
   local n=${4}
+  local reference=${5}
 
   if [[ "${action}" != "-D" ]]; then
     ${iptables} -t mangle -N ${name}
@@ -36,53 +37,46 @@ block_loopback() {
       ip ${n} a | busybox awk '/inet/ {print $2}' | grep -vE "^127.0.0.1" | while read -r local_ipv4; do
         ${iptables} -t mangle ${action} ${name} -d $local_ipv4 -j ACCEPT
         cmd_result=$?
-        [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv4, anti-loopback rule has been inserted" >>"${parent_dir}/log/run.log"
+        [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv4, anti-loopback rule has been inserted" >>"${parent_dir}/logs/run.log"
       done
     elif [[ "${n}" == "-6" ]]; then
       ip ${n} a | busybox awk '/inet6/ {print $2}' | grep -vE "^fe80|^::1|^fd00" | while read -r local_ipv6; do
         ${iptables} -t mangle ${action} ${name} -d $local_ipv6 -j ACCEPT
         cmd_result=$?
-        [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv6, anti-loopback rule has been inserted" >>"${parent_dir}/log/run.log"
+        [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv6, anti-loopback rule has been inserted" >>"${parent_dir}/logs/run.log"
       done
     fi
   fi
 
-  ${iptables} -t mangle ${action} PREROUTING -j ${name}
-  ${iptables} -t mangle ${action} OUTPUT -j ${name}
+  ${iptables} -t mangle ${action} ${reference}_EXTERNAL -j ${name}
+  ${iptables} -t mangle ${action} ${reference}_LOCAL -j ${name}
 
   if [[ "${action}" == "-D" ]]; then
     ${iptables} -t mangle -F ${name}
     ${iptables} -t mangle -X ${name}
-    log Info "${name} anti-loopback rule has been removed" >>"${parent_dir}/log/run.log"
+    log Info "${name} anti-loopback rule has been removed" >>"${parent_dir}/logs/run.log"
   fi
 }
 
 run_block_loopback() {
-  block_loopback "${IPV}" "-I" "${chain_name}" "-4"
-  block_loopback "${IP6V}" "-I" "${chain_name}6" "-6"
+  block_loopback "${IPV}" "-I" "${block_name}4" "-4" "${chain_name}4"
+  block_loopback "${IP6V}" "-I" "${block_name}6" "-6" "${chain_name}6"
 }
 
 rm_block_loopback() {
-  while true; do
-    if iptables -t mangle -L -v -n | grep -q "${chain_name}" &>/dev/null; then
-      block_loopback "${IPV}" "-D" "${chain_name}" "-4"
-      sleep 1
-    else
-      break
-    fi
+  until ! iptables -t mangle -L -v -n | grep -q "${block_name}4"; do
+    block_loopback "${IPV}" "-D" "${block_name}4" "-4" "${chain_name}4"
+    sleep 1
   done
-  while true; do
-    if ip6tables -t mangle -L -v -n | grep -q "${chain_name}" &>/dev/null; then
-      block_loopback "${IP6V}" "-D" "${chain_name}6" "-6"
-      sleep 1
-    else
-      break
-    fi
+  until ! ip6tables -t mangle -L -v -n | grep -q "${block_name}6"; do
+    block_loopback "${IP6V}" "-D" "${block_name}6" "-6" "${chain_name}6"
+    sleep 1
   done
 }
 
 if [[ "$events" == "w" && ! -f "${module_dir}/disable" && "$network_mode" == "tproxy" ]]; then
   rm_block_loopback
+  wait
   run_block_loopback
 else
   rm_block_loopback

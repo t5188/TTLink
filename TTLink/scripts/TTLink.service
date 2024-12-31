@@ -5,7 +5,6 @@ parent_dir=$(dirname ${scripts_dir})
 
 cd ${scripts_dir}
 source ${scripts_dir}/settings.ini
-chain_name="BOX_XRAY"
 
 ipt1=$(iptables --version | busybox awk '/^iptables/ {print $2}')
 ipt2="v1.6.1"
@@ -388,12 +387,12 @@ del_trp() {
 
 run_add_trp() {
   log Info "tp_port: ${tp_port}" >>"${parent_dir}/log/run.log"
-  add_trp ip "${table}" "${IPV}" "${chain_name}" "${intranet[*]}" "${uids[*]}"
+  add_trp ip "${table}" "${IPV}" "${chain_name}4" "${intranet[*]}" "${uids[*]}"
   add_trp "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6" "${intranet6[*]}" "${uids[*]}"
 }
 
 run_del_trp() {
-  del_trp ip "${table}" "${IPV}" "${chain_name}"
+  del_trp ip "${table}" "${IPV}" "${chain_name}4"
   del_trp "ip -6" "$((${table} * 2))" "${IP6V}" "${chain_name}6"
 }
 
