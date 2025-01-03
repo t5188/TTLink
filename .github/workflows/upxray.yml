@@ -46,5 +46,5 @@ jobs:
         git config user.email "actions@github.com"
         git add TTLink/binary/xray
         git add TTLink/binary/*.dat  # 添加所有 .dat 文件
-        git commit -m "Update Xray for Android and add .dat files"
-        git push origin main  # 推送到 main 分支
+        git commit -m "Update Xray for Android and add .dat files" || true
+        git push origin main || true  # 推送到 main 分支
