@@ -35,13 +35,13 @@ block_loopback() {
     ${iptables} -t mangle -F ${name}
     if [[ "${n}" == "-4" ]]; then
       ip ${n} a | busybox awk '/inet/ {print $2}' | grep -vE "^127.0.0.1" | while read -r local_ipv4; do
-        ${iptables} -t mangle ${action} ${name} -d $local_ipv4 -j ACCEPT
+        ${iptables} -t mangle ${action} ${name} -d $local_ipv4 -j RETURN
         cmd_result=$?
         [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv4, anti-loopback rule has been inserted" >>"${parent_dir}/log/run.log"
       done
     elif [[ "${n}" == "-6" ]]; then
       ip ${n} a | busybox awk '/inet6/ {print $2}' | grep -vE "^fe80|^::1|^fd00" | while read -r local_ipv6; do
-        ${iptables} -t mangle ${action} ${name} -d $local_ipv6 -j ACCEPT
+        ${iptables} -t mangle ${action} ${name} -d $local_ipv6 -j RETURN
         cmd_result=$?
         [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv6, anti-loopback rule has been inserted" >>"${parent_dir}/log/run.log"
       done
