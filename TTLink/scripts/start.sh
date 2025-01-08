@@ -2,8 +2,9 @@
 clear
 scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
-module_dir="/data/adb/modules/TTLink"
 parent_dir=$(dirname ${scripts_dir})
+module_dir="/data/adb/modules/TTLink"
+
 # source files
 source "${scripts_dir}/settings.ini"
 source "${scripts_dir}/TTLink.service"
