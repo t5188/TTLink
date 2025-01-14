@@ -48,17 +48,17 @@ block_loopback() {
 }
 
 run_block_loopback() {
-  block_loopback "${IPV}" "-I" "${block_name}4" "-4" "${chain_name}4"
-  block_loopback "${IP6V}" "-I" "${block_name}6" "-6" "${chain_name}6"
+  block_loopback "${IPV4}" "-I" "${block_name}4" "-4" "${chain_name}4"
+  block_loopback "${IPV6}" "-I" "${block_name}6" "-6" "${chain_name}6"
 }
 
 rm_block_loopback() {
   until ! iptables -t mangle -L -v -n | grep -q "${block_name}4"; do
-    block_loopback "${IPV}" "-D" "${block_name}4" "-4" "${chain_name}4"
+    block_loopback "${IPV4}" "-D" "${block_name}4" "-4" "${chain_name}4"
     sleep 1
   done
   until ! ip6tables -t mangle -L -v -n | grep -q "${block_name}6"; do
-    block_loopback "${IP6V}" "-D" "${block_name}6" "-6" "${chain_name}6"
+    block_loopback "${IPV6}" "-D" "${block_name}6" "-6" "${chain_name}6"
     sleep 1
   done
 }
