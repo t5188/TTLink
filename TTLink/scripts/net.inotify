@@ -63,6 +63,12 @@ rm_block_loopback() {
   done
 }
 
+case $1 in
+"D")
+  rm_block_loopback
+  ;;
+esac
+
 if [[ -f "${module_dir}/disable" ]]; then
   exit 0
 fi

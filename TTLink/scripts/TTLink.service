@@ -554,6 +554,7 @@ stop_trp() {
   run_del_trp >/dev/null 2>&1
   del_disable_quic
   del_cron
+  ${scripts_dir}/net.inotify D
   shutdown_cores
   toast "TP已关闭"
 }
