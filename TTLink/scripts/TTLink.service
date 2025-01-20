@@ -385,7 +385,7 @@ run_del_trp() {
 }
 
 add_cron() {
-  if [[ "${crond_task}" == "true" ]]; then
+  if [[ "${crond_task}" == "enable" ]]; then
     crontab_file="${scripts_dir}/root"
     if pgrep busybox crond >/dev/null; then
       kill -9 $(pgrep busybox crond)
@@ -394,7 +394,7 @@ add_cron() {
     nohup busybox crond -c ${scripts_dir}/ >/dev/null 2>&1 &
     log Info "New task: $(busybox crontab -l -c ${scripts_dir}/)" >>"${parent_dir}/log/run.log"
   else
-    log Warn "crond_task is not set to true. No crond task created." >>"${parent_dir}/log/run.log"
+    log Warn "crond_task is not set to enable. No crond task created." >>"${parent_dir}/log/run.log"
   fi
 }
 
@@ -473,7 +473,7 @@ launch_cores() {
     if [[ "${network_mode}" == "tun" ]]; then
       forward -I
       uidrange add
-      [[ "${dns2tun}" == "true" ]] && exec_dns_tun
+      [[ "${dns2tun}" == "enable" ]] && exec_dns_tun
     fi
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confx_dir} >/dev/null 2>&1 &
     pid=$(pidof "${bin_xray}")
@@ -523,7 +523,7 @@ stop_tun() {
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
   forward -D
-  [[ "${dns2tun}" == "true" ]] && rm_dns_tun
+  [[ "${dns2tun}" == "enable" ]] && rm_dns_tun
   uidrange del
   rm -f ${scripts_dir}/tables.tmp
   del_cron
