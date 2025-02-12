@@ -218,7 +218,7 @@ init_uids() {
     if [ -n "${uid}" ]; then
       uid="999$uid"
       uids+=("${uid}")
-      echo "${package_name}: 999${uid}" >>"${scripts_dir}/uids.list"
+      echo "${package_name}: ${uid}" >>"${scripts_dir}/uids.list"
     fi
   done
 
