@@ -201,15 +201,15 @@ forward() {
 init_uids() {
   uid=""
   uids=()
-  if [ -f "${scripts_dir}/uids.list" ]; then
-    rm "${scripts_dir}/uids.list"
+  if [ -f "${parent_dir}/log/uids.list" ]; then
+    rm "${parent_dir}/log/uids.list"
   fi
 
   for package_name in "${package_list[@]}"; do
     uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
     if [ -n "${uid}" ]; then
       uids+=("${uid}")
-      echo "${package_name}: ${uid}" >>"${scripts_dir}/uids.list"
+      echo "${package_name}: ${uid}" >>"${parent_dir}/log/uids.list"
     fi
   done
 
@@ -218,11 +218,11 @@ init_uids() {
     if [ -n "${uid}" ]; then
       uid="999$uid"
       uids+=("${uid}")
-      echo "${package_name}: ${uid}" >>"${scripts_dir}/uids.list"
+      echo "${package_name}: ${uid}" >>"${parent_dir}/log/uids.list"
     fi
   done
 
-  sort -t ':' -k2 -n "${scripts_dir}/uids.list" -o "${scripts_dir}/uids.list"
+  sort -t ':' -k2 -n "${parent_dir}/log/uids.list" -o "${parent_dir}/log/uids.list"
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
 }
 
@@ -512,8 +512,7 @@ shutdown_cores() {
   pid=$(pidof "${bin_box}")
   kill "${pid}" >/dev/null 2>&1
   log Info "sing-box process (${pid}) terminated." >>"${parent_dir}/log/run.log"
-  rm -f ${scripts_dir}/*.list
-  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} +
+  find "${parent_dir}" -type f \( -name "*.log" -o -name "*.list" \) ! -name "run.log" -exec rm -f {} +
 }
 
 start_tun() {
@@ -576,9 +575,7 @@ InChange() {
       "type": "tproxy",
       "tag": "tproxy-in",
       "listen": "::",
-      "listen_port": 2025,
-      "sniff": true,
-      "sniff_override_destination": true
+      "listen_port": 2025
     }]' -i --output-format=json "${box_config_file}"
     tp_port=$(awk -F':' '/"listen_port"/ {gsub(/[^0-9]/, "", $NF); print $NF; exit}' "${box_confs_dir}"/*.json 2>/dev/null)
   else
@@ -594,9 +591,7 @@ InChange() {
         "172.18.0.1/30",
         "fdfe:dcba:9876::1/126"
       ],
-      "stack": "system",
-      "sniff": true,
-      "sniff_override_destination": true
+      "stack": "system"
     }]' -i --output-format=json "${box_config_file}"
   fi
 }
