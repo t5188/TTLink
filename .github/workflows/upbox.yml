@@ -27,7 +27,7 @@ jobs:
       run: |
         # 获取最新版本（包含 prerelease）的发布信息
         LATEST_URL=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases | \
-        jq -r '.[] | select(.draft | not) | .assets[] | select(.name | contains("android-arm64-v8a.zip")) | .browser_download_url' | head -n 1)
+        jq -r '.[] | select(.draft | not) | .assets[] | select(.name | test("android-arm64.*\\.tar\\.gz$")) | .browser_download_url' | head -n 1)
 
         if [ -z "$LATEST_URL" ]; then
           echo "No valid Sing-box Android version found!"
