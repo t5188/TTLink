@@ -36,9 +36,10 @@ jobs:
 
         echo "Latest Sing-box download URL: $LATEST_URL"
         # 下载到临时目录
-        curl -L -o singbox_android.zip "$LATEST_URL"
+        curl -L -o singbox_android.tar.gz "$LATEST_URL"
         # 解压到临时目录
-        unzip -o singbox_android.zip -d singbox_android
+        mkdir -p singbox_android
+        tar -xzf singbox_android.tar.gz -C singbox_android
         # 确保目标目录存在
         mkdir -p TTLink/binary/
         # 移动 Sing-box 主程序到目标目录并重命名为 sing-box，覆盖旧文件
