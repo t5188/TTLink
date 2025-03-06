@@ -40,10 +40,18 @@ jobs:
         # 解压到临时目录
         mkdir -p singbox_android
         tar -xzf singbox_android.tar.gz -C singbox_android
+        # 列出解压后的文件结构（调试用）
+        ls -R singbox_android
         # 确保目标目录存在
         mkdir -p TTLink/binary/
+        # 查找 Sing-box 主程序的实际路径并移动
+        BIN_PATH=$(find singbox_android -type f -name "sing-box" | head -n 1)
+        if [ -z "$BIN_PATH" ]; then
+          echo "Error: sing-box binary not found!"
+          exit 1
+        fi
         # 移动 Sing-box 主程序到目标目录并重命名为 sing-box，覆盖旧文件
-        mv -f singbox_android/sing-box TTLink/binary/sing-box
+        mv -f "$BIN_PATH" TTLink/binary/sing-box
 
         # 查找并移动 .dat 文件到目标目录
         find singbox_android -type f -name "*.dat" -exec mv -f {} TTLink/binary/ \;
