@@ -21,9 +21,9 @@ if [ ! -f "$settings_file" ]; then
   exit 1
 fi
 
-# 检查 box_config.json 文件是否存在
-if [ ! -f "$box_config_file" ]; then
-  echo -e "${red}box_config.json 文件不存在，无法继续${normal}"
+# 检查 inbounds_config_file.json 文件是否存在
+if [ ! -f "$inbounds_config_file" ]; then
+  echo -e "${red}inbounds_config_file.json 文件不存在，无法继续${normal}"
   exit 1
 fi
 
