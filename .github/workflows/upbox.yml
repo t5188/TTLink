@@ -53,9 +53,6 @@ jobs:
         # 移动 Sing-box 主程序到目标目录并重命名为 sing-box，覆盖旧文件
         mv -f "$BIN_PATH" TTLink/binary/sing-box
 
-        # 查找并移动 .dat 文件到目标目录
-        find singbox_android -type f -name "*.dat" -exec mv -f {} TTLink/binary/ \;
-
     - name: Commit and push changes
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,6 +61,5 @@ jobs:
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
         git add TTLink/binary/sing-box
-        git add TTLink/binary/*.dat  # 添加所有 .dat 文件
-        git commit -m "Update Sing-box to version $SINGBOX_VERSION for Android and add .dat files" || echo "No changes to commit"
+        git commit -m "Update Sing-box to version $SINGBOX_VERSION for Android" || echo "No changes to commit"
         git push origin main || true  # 推送到 main 分支
