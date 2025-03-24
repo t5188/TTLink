@@ -1,0 +1,196 @@
+{
+  "route": {
+    "rules": [
+      {
+        "action": "sniff"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
+      },
+      {
+        "domain_regex": [
+          "^.*mtalk[.]google[.]com$"
+        ],
+        "outbound": "out-direct"
+      },
+      {
+        "domain_regex": [
+          "^.*[.]95516[.]com$"
+        ],
+        "outbound": "out-direct"
+      },
+      {
+        "rule_set": "geosite-category-ads-all",
+        "action": "reject"
+      },
+      {
+        "clash_mode": "direct",
+        "outbound": "out-direct"
+      },
+      {
+        "clash_mode": "global",
+        "outbound": "TTLink"
+      },
+      {
+        "rule_set": "geosite-openai",
+        "outbound": "TTLink"
+      },
+      {
+        "domain_regex": [
+          "^.*[.]googleapis[.]cn$"
+        ],
+        "outbound": "TTLink"
+      },
+      {
+        "domain_regex": [
+          "^.*[.]googleapis[.]com$"
+        ],
+        "outbound": "TTLink"
+      },
+      {
+        "domain_regex": [
+          "^.*[.]xn--ngstr-lra8j[.]com$"
+        ],
+        "outbound": "TTLink"
+      },
+      {
+        "rule_set": [
+          "geosite-google@cn",
+          "geosite-bing@cn",
+          "geosite-microsoft@cn"
+        ],
+        "outbound": "TTLink"
+      },
+      {
+        "rule_set": "geosite-google",
+        "outbound": "TTLink"
+      },
+      {
+        "rule_set": "geosite-bing",
+        "outbound": "TTLink"
+      },
+      {
+        "rule_set": "geosite-microsoft",
+        "outbound": "TTLink"
+      },
+      {
+        "rule_set": "geosite-github",
+        "outbound": "TTLink"
+      },
+      {
+        "rule_set": "geosite-geolocation-!cn",
+        "outbound": "TTLink"
+      },
+      {
+        "rule_set": [
+          "geosite-private",
+          "geosite-cn"
+        ],
+        "outbound": "out-direct"
+      },
+      {
+        "rule_set": [
+          "geoip-cn"
+        ],
+        "outbound": "out-direct"
+      }
+    ],
+    "rule_set": [
+      {
+        "type": "remote",
+        "tag": "geosite-google",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/google.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-google@cn",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/google@cn.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-geolocation-!cn",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/geolocation-!cn.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-openai",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/openai.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-microsoft",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/microsoft.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-microsoft@cn",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/microsoft@cn.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-category-ads-all",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/category-ads-all.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-private",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/private.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-bing",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/bing.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-bing@cn",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/bing@cn.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-cn",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/cn.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-github",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geosite/github.srs",
+        "download_detour": "out-direct"
+      },
+      {
+        "type": "remote",
+        "tag": "geoip-cn",
+        "format": "binary",
+        "url": "https://srs.acstudycn.eu.org/geoip/cn.srs",
+        "download_detour": "out-direct"
+      }
+    ],
+    "final": "TTLink",
+    "find_process": true,
+    "auto_detect_interface": true
+  }
+}

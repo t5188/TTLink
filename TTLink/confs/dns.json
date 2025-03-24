@@ -1,0 +1,88 @@
+{
+  "dns": {
+    "servers": [
+      {
+        "tag": "Google",
+        "type": "https",
+        "server": "dns.google",
+        "server_port": 443,
+        "domain_resolver": "Cloudflare",
+        "detour": "TTLink"
+      },
+      {
+        "tag": "Cloudflare",
+        "type": "https",
+        "server": "dns.acstudycn.eu.org",
+        "server_port": 443,
+        "domain_resolver": "Alibaba",
+        "detour": "out-direct"
+      },
+      {
+        "tag": "Alibaba",
+        "type": "udp",
+        "server": "223.5.5.5",
+        "server_port": 53,
+        "detour": "out-direct"
+      }
+    ],
+    "rules": [
+      {
+        "outbound": "any",
+        "server": "Alibaba"
+      },
+      {
+        "rule_set": "geosite-category-ads-all",
+        "action": "reject"
+      },
+      {
+        "clash_mode": "direct",
+        "server": "Cloudflare"
+      },
+      {
+        "clash_mode": "global",
+        "server": "Google"
+      },
+      {
+        "domain_regex": [
+          "^.*mtalk[.]google[.]com$",
+          "^.*[.]95516[.]com$"
+        ],
+        "server": "Alibaba"
+      },
+      {
+        "domain_regex": [
+          "^.*[.]googleapis[.]cn$",
+          "^.*[.]googleapis[.]com$",
+          "^.*[.]xn--ngstr-lra8j[.]com$"
+        ],
+        "server": "Google"
+      },
+      {
+        "query_type": [
+          "A",
+          "AAAA"
+        ],
+        "rule_set": [
+          "geosite-google",
+          "geosite-google@cn",
+          "geosite-bing",
+          "geosite-github",
+          "geosite-microsoft",
+          "geosite-bing@cn",
+          "geosite-microsoft@cn",
+          "geosite-openai",
+          "geosite-geolocation-!cn"
+        ],
+        "server": "Google"
+      },
+      {
+        "rule_set": [
+          "geosite-private",
+          "geosite-cn"
+        ],
+        "server": "Cloudflare"
+      }
+    ],
+    "independent_cache": true
+  }
+}
