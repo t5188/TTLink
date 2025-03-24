@@ -1,5 +1,5 @@
 ## 更新说明：
 
-- 更新net.inotify为RETURN
+- 优化dns.json配置
 
 - -------------------
