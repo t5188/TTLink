@@ -2,20 +2,20 @@
   "dns": {
     "servers": [
       {
-        "tag": "Google",
-        "type": "https",
-        "server": "dns.google",
-        "server_port": 443,
-        "domain_resolver": "Cloudflare",
-        "detour": "TTLink"
-      },
-      {
         "tag": "Cloudflare",
         "type": "https",
         "server": "dns.acstudycn.eu.org",
         "server_port": 443,
         "domain_resolver": "Alibaba",
         "detour": "out-direct"
+      },
+      {
+        "tag": "Google",
+        "type": "https",
+        "server": "dns.google",
+        "server_port": 443,
+        "domain_resolver": "Cloudflare",
+        "detour": "TTLink"
       },
       {
         "tag": "Alibaba",
