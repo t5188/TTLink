@@ -5,24 +5,19 @@
         "tag": "Cloudflare",
         "type": "https",
         "server": "dns.acstudycn.eu.org",
-        "server_port": 443,
-        "domain_resolver": "Alibaba",
-        "detour": "out-direct"
+        "domain_resolver": "Alibaba"
       },
       {
         "tag": "Google",
         "type": "https",
         "server": "dns.google",
-        "server_port": 443,
         "domain_resolver": "Cloudflare",
         "detour": "TTLink"
       },
       {
         "tag": "Alibaba",
         "type": "udp",
-        "server": "223.5.5.5",
-        "server_port": 53,
-        "detour": "out-direct"
+        "server": "223.5.5.5"
       }
     ],
     "rules": [
