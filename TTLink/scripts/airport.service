@@ -69,4 +69,3 @@ else
   log Info "Airport file saved" >> "$log_file"
 fi
 }
-airport
