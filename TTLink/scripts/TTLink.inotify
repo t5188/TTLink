@@ -1,6 +1,7 @@
 #!/system/bin/sh
 scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
+source ${scripts_dir}/airport.service
 
 events=$1
 monitor_file=$3
@@ -8,6 +9,7 @@ monitor_file=$3
 if [[ "${monitor_file}" == "disable" ]]; then
   case "${events}" in
   "d")
+    airport
     ${scripts_dir}/TTLink.service enable >/dev/null 2>&1
     ;;
   "n")
