@@ -5,6 +5,7 @@
         "tag": "Cloudflare",
         "type": "https",
         "server": "dns.acstudycn.eu.org",
+        "path": "/resolution",
         "domain_resolver": "Alibaba"
       },
       {
