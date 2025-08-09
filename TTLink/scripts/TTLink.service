@@ -486,10 +486,8 @@ launch_cores() {
     pid=$(pidof "${bin_box}")
     log Info "sing-box process (${pid}) started." >>"${parent_dir}/log/run.log"
   else
-    if [[ ! -f "${bin_box}" ]]; then
       log Error "Binary missing: $(basename "${bin_box}")" >>"${parent_dir}/log/run.log"
       toast "Error: Missing binary $(basename "${bin_box}"). Please check your installation."
-    fi
   fi
 }
 
