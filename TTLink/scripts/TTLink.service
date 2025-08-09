@@ -255,7 +255,7 @@ uidrange() {
 
   elif [[ "${proxy_mode}" == "blacklist" ]] && [[ ${#package_list[@]} -gt 0 ]]; then
     init_uids
-    uids+=("${box_user}" "${xray_user}")
+    uids+=("${box_user}")
     uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
     for blackapp in "${uids[@]}"; do
       ip -4 rule ${action} from all uidrange ${blackapp}-${blackapp} priority 9000 goto 9010
@@ -263,7 +263,7 @@ uidrange() {
     done
 
   elif [[ ${#package_list[@]} -eq 0 ]]; then
-    uids=("${box_user}" "${xray_user}")
+    uids=("${box_user}")
     for users in "${uids[@]}"; do
       ip -4 rule ${action} from all uidrange ${users}-${users} priority 9000 goto 9010
       ip -6 rule ${action} from all uidrange ${users}-${users} priority 9000 goto 9010
@@ -342,7 +342,6 @@ add_trp() {
     ;;
   esac
   ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${box_user} --gid-owner ${box_group} -j RETURN
-  ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${xray_user} --gid-owner ${xray_group} -j RETURN
   ${3} -t mangle -A DIVERTSV -j MARK --set-mark "${fwmark}"
   ${3} -t mangle -A DIVERTSV -j ACCEPT
   ${3} -t mangle -A PREROUTING -j ${4}_EXTERNAL
@@ -445,7 +444,6 @@ del_disable_quic() {
 
 version() {
   version_box=$(${bin_box} version | head -n 1 | awk '{print $3}')
-  version_xray=$(${bin_xray} version | head -n 1 | awk '{print $2}')
 }
 
 description() {
@@ -454,9 +452,8 @@ description() {
   version
   prop_file="/data/adb/modules/TTLink/module.prop"
   core_name_box="${bin_box##*/}"
-  core_name_xray="${bin_xray##*/}"
   current_time=$(date "+[%m.%d %H:%M]")
-  sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} work with ${core_name_xray} ${version_xray} ${network_mode} ${event}" "${prop_file}"
+  sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} work  ${network_mode} ${event}" "${prop_file}"
   log Info "${symbol} ${network_mode} ${event}" >>"${parent_dir}/log/run.log"
 }
 
@@ -469,8 +466,8 @@ run_description() {
 }
 
 ownership() {
-  chmod 755 ${bin_box} ${bin_xray}
-  chown root:net_admin ${bin_box} ${bin_xray}
+  chmod 755 ${bin_box}
+  chown root:net_admin ${bin_box}
   chmod o+rw ${public_log_dir}
   find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
   log Info "Ownership has been set" >>"${parent_dir}/log/run.log"
@@ -479,36 +476,24 @@ ownership() {
 launch_cores() {
   ulimit -SHn 1000000
   ownership
-  if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
+  if [[ -f "${bin_box}" ]]; then
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/rules/ >/dev/null 2>&1 &
     if [[ "${network_mode}" == "tun" ]]; then
       forward -I
       uidrange add
       [[ "${dns2tun}" == "enable" ]] && exec_dns_tun
     fi
-    nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confx_dir} >/dev/null 2>&1 &
-    pid=$(pidof "${bin_xray}")
-    log Info "xray process (${pid}) started." >>"${parent_dir}/log/run.log"
+
     pid=$(pidof "${bin_box}")
     log Info "sing-box process (${pid}) started." >>"${parent_dir}/log/run.log"
   else
-    if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
-      log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
-      toast "Error: Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}"). Please check your installation."
-    elif [[ ! -f "${bin_box}" ]]; then
-      log Error "Binary missing: $(basename "${bin_box}")" >>"${parent_dir}/log/run.log"
-      toast "Error: Missing binary $(basename "${bin_box}"). Please check your installation."
-    elif [[ ! -f "${bin_xray}" ]]; then
-      log Error "Binary missing: $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
-      toast "Error: Missing binary $(basename "${bin_xray}"). Please check your installation."
-    fi
+    log Error "Binary missing: $(basename "${bin_box}")" >>"${parent_dir}/log/run.log"
+    toast "Error: Missing binary $(basename "${bin_box}"). Please check your installation."   
   fi
 }
 
 shutdown_cores() {
-  pid=$(pidof "${bin_xray}")
-  kill "${pid}" >/dev/null 2>&1
-  log Info "xray process (${pid}) terminated." >>"${parent_dir}/log/run.log"
+ 
   pid=$(pidof "${bin_box}")
   kill "${pid}" >/dev/null 2>&1
   log Info "sing-box process (${pid}) terminated." >>"${parent_dir}/log/run.log"
@@ -517,7 +502,7 @@ shutdown_cores() {
 
 start_tun() {
   log Info "---welcome---" >"${parent_dir}/log/run.log"
-  if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
+  if [[ -n $(pidof "${bin_box}") ]]; then
     log Info "Close existing processes"
     stop_tun
     log Info "---restart---" >"${parent_dir}/log/run.log"
@@ -528,7 +513,7 @@ start_tun() {
 }
 
 stop_tun() {
-  if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
+  if [[ -z $(pidof "${bin_box}") ]]; then
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
@@ -543,7 +528,7 @@ stop_tun() {
 
 start_trp() {
   log Info "---welcome---" >"${parent_dir}/log/run.log"
-  if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
+  if [[ -n $(pidof "${bin_box}") ]]; then
     log Info "Close existing processes"
     stop_trp
     log Info "---restart---" >"${parent_dir}/log/run.log"
@@ -557,7 +542,7 @@ start_trp() {
 }
 
 stop_trp() {
-  if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
+  if [[ -z $(pidof "${bin_box}") ]]; then
     exit 1
   fi
   log Info "---goodbye---" >"${parent_dir}/log/run.log"
