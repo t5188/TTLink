@@ -483,17 +483,17 @@ launch_cores() {
       uidrange add
       [[ "${dns2tun}" == "enable" ]] && exec_dns_tun
     fi
-
     pid=$(pidof "${bin_box}")
     log Info "sing-box process (${pid}) started." >>"${parent_dir}/log/run.log"
   else
-    log Error "Binary missing: $(basename "${bin_box}")" >>"${parent_dir}/log/run.log"
-    toast "Error: Missing binary $(basename "${bin_box}"). Please check your installation."   
+    if [[ ! -f "${bin_box}" ]]; then
+      log Error "Binary missing: $(basename "${bin_box}")" >>"${parent_dir}/log/run.log"
+      toast "Error: Missing binary $(basename "${bin_box}"). Please check your installation."
+    fi
   fi
 }
 
 shutdown_cores() {
- 
   pid=$(pidof "${bin_box}")
   kill "${pid}" >/dev/null 2>&1
   log Info "sing-box process (${pid}) terminated." >>"${parent_dir}/log/run.log"
