@@ -38,10 +38,10 @@ fi
 # 记录开始时间
 start_time=$(date +%s)
 
-# 循环，直到 sing-box 和 xray 两个进程都不再运行，或者超过 10 秒
+# 循环，直到 sing-box 进程不再运行，或者超过 10 秒
 while true; do
-  # 检查 sing-box 和 xray 进程是否正在运行
-  if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
+  # 检查 sing-box 进程是否正在运行
+  if [[ -z $(pidof "${bin_box}") ]]; then
     break
   fi
 
