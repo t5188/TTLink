@@ -453,7 +453,7 @@ description() {
   prop_file="/data/adb/modules/TTLink/module.prop"
   core_name_box="${bin_box##*/}"
   current_time=$(date "+[%m.%d %H:%M]")
-  sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} work  ${network_mode} ${event}" "${prop_file}"
+  sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} ${network_mode} ${event}" "${prop_file}"
   log Info "${symbol} ${network_mode} ${event}" >>"${parent_dir}/log/run.log"
 }
 
