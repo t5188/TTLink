@@ -67,8 +67,6 @@ if [ -n "$largest_folder" ]; then
       if [ -d "$folder/confs" ]; then
         cp -rf "$folder/confs/"* /data/adb/TTLink/confs/
         ui_print "- Copied contents of $folder/confs to /data/adb/TTLink/confs/"
-        cp -rf "$folder/confx/"* /data/adb/TTLink/confx/
-        ui_print "- Copied contents of $folder/confx to /data/adb/TTLink/confx/"
         ui_print "- 成功还原配置文件"
       fi
       break
