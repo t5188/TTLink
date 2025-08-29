@@ -554,10 +554,10 @@ stop_trp() {
 
 InChange() {
   if [[ "${network_mode}" == "tproxy" ]]; then
-    $yq '. = {"inbounds":[{"type":"tproxy","tag":"tproxy-in","listen":"::","listen_port":2025}]}' -i --output-format=json "${inbounds_config_file}"
+    $yq '.inbounds = [{"type":"tproxy","tag":"tproxy-in","listen":"::","listen_port":2025}]' -i --output-format=json "${inbounds_config_file}"
     tp_port=$(awk -F':' '/"listen_port"/ {gsub(/[^0-9]/, "", $NF); print $NF; exit}' "${box_confs_dir}"/*.json 2>/dev/null)
   else
-    $yq '. = {"inbounds":[{"type":"tun","tag":"tun-in","interface_name":"tun0","mtu":1400,"address":["172.18.0.1/30","fdfe:dcba:9876::1/126"],"auto_route":true,"strict_route":true,"stack":"system","endpoint_independent_nat":true}]}' -i --output-format=json "${inbounds_config_file}"
+    $yq '.inbounds = [{"type":"tun","tag":"tun-in","interface_name":"tun0","mtu":1400,"address":["172.18.0.1/30","fdfe:dcba:9876::1/126"],"auto_route":true,"strict_route":true,"stack":"system","endpoint_independent_nat":true}]' -i --output-format=json "${inbounds_config_file}"
   fi
 }
 
