@@ -477,7 +477,7 @@ launch_cores() {
   ulimit -SHn 1000000
   ownership
   if [[ -f "${bin_box}" ]]; then
-    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/rules/ >/dev/null 2>&1 &
+    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     if [[ "${network_mode}" == "tun" ]]; then
       forward -I
       uidrange add
