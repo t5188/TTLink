@@ -401,7 +401,7 @@ add_cron() {
     if pgrep busybox crond >/dev/null; then
       kill -9 $(pgrep busybox crond)
     fi
-    echo '5 0,12 * * * touch /data/adb/modules/TTLink/disable && sleep 3 && rm /data/adb/modules/TTLink/disable' >${crontab_file}
+    echo '5 0,12 * * * touch /data/adb/modules/ATTLink/disable && sleep 3 && rm /data/adb/modules/ATTLink/disable' >${crontab_file}
     nohup busybox crond -c ${scripts_dir}/ >/dev/null 2>&1 &
     log Info "New task: $(busybox crontab -l -c ${scripts_dir}/)" >>"${parent_dir}/log/run.log"
   else
@@ -452,7 +452,7 @@ description() {
   local symbol=$1
   local event=$2
   version
-  prop_file="/data/adb/modules/TTLink/module.prop"
+  prop_file="/data/adb/modules/ATTLink/module.prop"
   core_name_box="${bin_box##*/}"
   core_name_xray="${bin_xray##*/}"
   current_time=$(date "+[%m.%d %H:%M]")
