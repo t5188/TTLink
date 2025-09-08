@@ -1,7 +1,7 @@
 id=TTLink
 name=TTLink
-version=v1.0
-versionCode=20250907
+version=v1.1
+versionCode=20250908
 author=Tony
-description=tproxy and tun; sing-box
+description=tproxy and tun; sing-box+xray
 updateJson=https://github.com/t5188/TTLink/raw/main/update.json

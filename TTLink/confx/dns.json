@@ -1,0 +1,58 @@
+{
+  "dns": {
+    "hosts": {
+      "domain:googleapis.cn": "googleapis.com",
+      "domain:api.acstudycn.eu.org": "172.67.72.36",
+      "domain:api.acstudyhk.eu.org": "172.67.72.37",
+      "domain:api.acstudyus.eu.org": "172.67.72.38",
+      "geosite:category-ads-all": "127.0.0.1"
+    },
+    "servers": [
+      {
+        "address": "fakedns",
+        "domains": [
+          "domain:googleapis.cn",
+          "domain:gstatic.com",
+          "domain:openai.com",
+          "domain:chatgpt.com",
+          "geosite:google",
+          "geosite:googlefcm",
+          "geosite:google@cn",
+          "geosite:bing",
+          "geosite:bing@cn",
+          "geosite:microsoft",
+          "geosite:microsoft@cn",
+          "geosite:github",
+          "geosite:openai",
+          "geosite:youtube",
+          "geosite:twitter",
+          "geosite:reddit",
+          "geosite:geolocation-!cn"
+        ],
+        "skipFallback": true
+      },
+      {
+        "address": "https+local://api.acstudyhk.eu.org/resolution",
+        "domains": [
+          "regexp:^.+\\.eu\\.org$"
+        ],
+        "skipFallback": true
+      },
+      {
+        "address": "https+local://api.acstudyus.eu.org/resolution"
+      }
+    ],
+    "queryStrategy": "UseIP",
+    "disableCache": false
+  },
+  "fakedns": [
+    {
+      "ipPool": "198.18.0.0/15",
+      "poolSize": 65535
+    },
+    {
+      "ipPool": "2001:db8::/32",
+      "poolSize": 65535
+    }
+  ]
+}

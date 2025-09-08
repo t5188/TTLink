@@ -64,17 +64,28 @@ if [ -n "$largest_folder" ]; then
     clean_name=$(echo "$folder" | sed 's/.*TTLink//' | sed 's/_//g')
     if [ "$clean_name" = "$largest_folder" ]; then
       ui_print "- Found folder: $folder"
+
+      # 还原 confs
       if [ -d "$folder/confs" ]; then
         cp -rf "$folder/confs/"* /data/adb/TTLink/confs/
         ui_print "- Copied contents of $folder/confs to /data/adb/TTLink/confs/"
-        ui_print "- 成功还原配置文件"
+        ui_print "- 成功还原 confs 配置文件"
       fi
+
+      # 还原 confx
+      if [ -d "$folder/confx" ]; then
+        cp -rf "$folder/confx/"* /data/adb/TTLink/confx/
+        ui_print "- Copied contents of $folder/confx to /data/adb/TTLink/confx/"
+        ui_print "- 成功还原 confx 配置文件"
+      fi
+
       break
     fi
   done
 else
   ui_print "- 首次安装，无备份配置可还原"
 fi
+
 
 pm install -r /data/adb/TTLink/scripts/toast.apk && rm -f /data/adb/TTLink/scripts/toast.apk || ui_print "- 请手动安装toast.apk"
 

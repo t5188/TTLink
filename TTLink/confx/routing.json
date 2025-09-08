@@ -1,0 +1,44 @@
+{
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "domainMatcher": "linear",
+    "rules": [
+      {
+        "inboundTag": [
+          "in-1081"
+        ],
+        "outboundTag": "222+236CE"
+      },
+      {
+        "inboundTag": [
+          "in-1082"
+        ],
+        "outboundTag": "004R"
+      },
+      {
+        "inboundTag": [
+          "in-1083"
+        ],
+        "outboundTag": "107+058RR"
+      },
+      {
+        "inboundTag": [
+          "in-1084"
+        ],
+        "outboundTag": "222+236RR"
+      },
+      {
+        "inboundTag": [
+          "in-1085"
+        ],
+        "outboundTag": "058_443"
+      },
+      {
+        "inboundTag": [
+          "in-1086"
+        ],
+        "outboundTag": "107_443"
+      }
+    ]
+  }
+}

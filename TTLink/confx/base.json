@@ -1,0 +1,9 @@
+{
+  "log": {
+    "access": "../log/access.log",
+    "error": "../log/error.log",
+    "loglevel": "debug",
+    "dnsLog": true,
+    "maskAddress": "half"
+  }
+}
