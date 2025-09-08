@@ -25,8 +25,8 @@ else
 fi
 
 # Set up service directory and clean old installations
-if [ -d "/data/adb/modules/TTLink" ]; then
-  rm -rf "/data/adb/modules/TTLink"
+if [ -d "/data/adb/modules/ATTLink" ]; then
+  rm -rf "/data/adb/modules/ATTLink"
   ui_print "- 旧模块已删除"
 fi
 

@@ -2,7 +2,7 @@
 # Environment variable settings
 export PATH="/data/adb/ap/bin:/data/adb/ksu/bin:/data/adb/magisk:$PATH"
 
-module_dir="/data/adb/modules/TTLink"
+module_dir="/data/adb/modules/ATTLink"
 scripts_dir="/data/adb/TTLink/scripts"
 
 restart_proxy_service() {
