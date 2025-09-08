@@ -1,6 +1,6 @@
-id=TTLink
+id=ATTLink
 name=TTLink
-version=v1.1
+version=v1.2
 versionCode=20250908
 author=Tony
 description=tproxy and tun; sing-box+xray

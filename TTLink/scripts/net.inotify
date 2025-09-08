@@ -2,7 +2,7 @@
 scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
 parent_dir=$(dirname ${scripts_dir})
-module_dir="/data/adb/modules/TTLink"
+module_dir="/data/adb/modules/ATTLink"
 
 events=$1
 
