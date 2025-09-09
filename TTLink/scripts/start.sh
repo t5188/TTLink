@@ -7,8 +7,6 @@ parent_dir=$(dirname ${scripts_dir})
 # source files
 source "${scripts_dir}/settings.ini"
 source "${scripts_dir}/TTLink.service"
-# Determines a path that can be used for relative path references.
-cd ${scripts_dir}
 
 proxy_service() {
   if [[ ! -f "${module_dir}/disable" ]]; then
