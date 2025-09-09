@@ -3,7 +3,6 @@ scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
 parent_dir=$(dirname ${scripts_dir})
 
-cd ${scripts_dir}
 source ${scripts_dir}/settings.ini
 
 disable_ipv6() {
@@ -486,6 +485,7 @@ launch_cores() {
       uidrange add
       [[ "${dns2tun}" == "enable" ]] && exec_dns_tun
     fi
+    cd ${scripts_dir}
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confx_dir} >/dev/null 2>&1 &
     pid=$(pidof "${bin_xray}")
     log Info "xray process (${pid}) started." >>"${parent_dir}/log/run.log"
