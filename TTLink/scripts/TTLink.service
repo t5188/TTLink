@@ -3,7 +3,6 @@ scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
 parent_dir=$(dirname ${scripts_dir})
 
-cd ${scripts_dir}
 source ${scripts_dir}/settings.ini
 
 disable_ipv6() {
