@@ -2,9 +2,12 @@
 scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
 parent_dir=$(dirname ${scripts_dir})
+module_dir="/data/adb/modules/ATTLink"
+
+events=$1
 
 source ${scripts_dir}/settings.ini
-events=$1
+
 [[ netChange="disable" ]] && exit 0
 
 block_name="BLOCK_LOOPBACK"

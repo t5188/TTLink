@@ -3,6 +3,7 @@ clear
 scripts=$(realpath $0)
 scripts_dir=$(dirname ${scripts})
 parent_dir=$(dirname ${scripts_dir})
+module_dir="/data/adb/modules/ATTLink"
 
 # source files
 source "${scripts_dir}/settings.ini"
