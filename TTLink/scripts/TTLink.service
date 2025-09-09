@@ -400,7 +400,7 @@ add_cron() {
     if pgrep busybox crond >/dev/null; then
       kill -9 $(pgrep busybox crond)
     fi
-    echo "5 0,12 * * * touch ${module_dir}/disable && sleep 3 && rm ${module_dir}/disable" > "${crontab_file}"
+    echo "5 */2 * * * touch ${module_dir}/disable && sleep 3 && rm ${module_dir}/disable" > "${crontab_file}"
     nohup busybox crond -c ${scripts_dir}/ >/dev/null 2>&1 &
     log Info "New task: $(busybox crontab -l -c ${scripts_dir}/)" >>"${parent_dir}/log/run.log"
   else
@@ -478,6 +478,7 @@ ownership() {
 launch_cores() {
   ulimit -SHn 1000000
   ownership
+  cd ${scripts_dir}
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     if [[ "${network_mode}" == "tun" ]]; then
@@ -485,7 +486,6 @@ launch_cores() {
       uidrange add
       [[ "${dns2tun}" == "enable" ]] && exec_dns_tun
     fi
-    cd ${scripts_dir}
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confx_dir} >/dev/null 2>&1 &
     pid=$(pidof "${bin_xray}")
     log Info "xray process (${pid}) started." >>"${parent_dir}/log/run.log"
