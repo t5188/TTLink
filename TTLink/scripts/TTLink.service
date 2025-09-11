@@ -578,14 +578,19 @@ InChange() {
   fi
 }
 
-case "$1" in
-enable)
+reset_network() {
+  sleep 2
   svc data disable
   svc wifi disable
   sleep 2
   svc data enable
   svc wifi enable
   sleep 2
+}
+
+case "$1" in
+enable)
+  reset_network
   if [[ "${network_mode}" == "tproxy" ]]; then
     InChange
     start_trp
