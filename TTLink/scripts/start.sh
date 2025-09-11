@@ -45,15 +45,6 @@ start_inotifyd() {
   inotifyd "${scripts_dir}/TTLink.inotify" "${module_dir}" >/dev/null 2>&1 &
 }
 
-check_network() {
-  TARGET="1.1.1.1"
-  while ! ping -c 1 -W 1 ${TARGET} >/dev/null 2>&1; do
-    sleep 3
-  done
-  log Info "网络已连接！"
-}
-
-check_network
 proxy_service
 start_inotifyd
 
