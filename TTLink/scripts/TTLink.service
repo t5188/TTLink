@@ -284,7 +284,7 @@ uidrange() {
 }
 
 add_trp() {
-  ${1} rule add fwmark "${fwmark}" table ${2} priority $((${2} * 10))
+  ${1} rule add fwmark "${fwmark}" table ${2} priority 1000
   ${1} route add local default dev lo table ${2}
   ${3} -t mangle -N ${4}_EXTERNAL
   ${3} -t mangle -F ${4}_EXTERNAL
@@ -351,7 +351,7 @@ add_trp() {
 }
 
 del_trp() {
-  ${1} rule del fwmark "${fwmark}" table ${2} priority $((${2} * 10))
+  ${1} rule del fwmark "${fwmark}" table ${2} priority 1000
   ${1} route del local default dev lo table ${2}
   ${1} route flush table ${2}
   ${3} -t mangle -D PREROUTING -j ${4}_EXTERNAL
