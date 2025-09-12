@@ -570,7 +570,7 @@ reset_network() {
 
 case "$1" in
 enable)
-  reset_network
+  # reset_network
   if [[ "${network_mode}" == "tproxy" ]]; then
     InChange
     start_trp
