@@ -354,33 +354,15 @@ del_trp() {
   ${1} rule del fwmark "${fwmark}" table ${2} priority $((${2} * 10))
   ${1} route del local default dev lo table ${2}
   ${1} route flush table ${2}
-  while true; do
-    IPTABLES_DUMP=$(${3} -t mangle -L -nv)
-    if echo "$IPTABLES_DUMP" | grep -q "${4}_EXTERNAL"; then
-      ${3} -t mangle -D PREROUTING -j ${4}_EXTERNAL
-    fi
-    if echo "$IPTABLES_DUMP" | grep -q "DIVERTSV"; then
-      ${3} -t mangle -D PREROUTING -p tcp -m socket -j DIVERTSV
-    fi
-    if echo "$IPTABLES_DUMP" | grep -q "${4}_LOCAL"; then
-      ${3} -t mangle -D OUTPUT -j ${4}_LOCAL
-    fi
-    for chain in "${4}_EXTERNAL" "DIVERTSV" "${4}_LOCAL"; do
-      if ${3} -t mangle -L $chain -nv &>/dev/null; then
-        ${3} -t mangle -F $chain
-      fi
-    done
-    for chain in "${4}_EXTERNAL" "DIVERTSV" "${4}_LOCAL"; do
-      if ${3} -t mangle -L $chain -nv &>/dev/null; then
-        ${3} -t mangle -X $chain
-      fi
-    done
-    if ! echo "$IPTABLES_DUMP" | grep -q -E "${4}_EXTERNAL|DIVERTSV|${4}_LOCAL"; then
-      log Info "All $(echo "${4}" | awk '{print $1}') chains have been removed" >>"${parent_dir}/log/run.log"
-      break
-    fi
-    sleep 1
-  done
+  ${3} -t mangle -D PREROUTING -j ${4}_EXTERNAL
+  ${3} -t mangle -D PREROUTING -p tcp -m socket -j DIVERT
+  ${3} -t mangle -D OUTPUT -j ${4}_LOCAL
+  ${3} -t mangle -F ${4}_EXTERNAL
+  ${3} -t mangle -F DIVERT
+  ${3} -t mangle -F ${4}_LOCAL
+  ${3} -t mangle -X ${4}_EXTERNAL
+  ${3} -t mangle -X DIVERT
+  ${3} -t mangle -X ${4}_LOCAL
 }
 
 run_add_trp() {
