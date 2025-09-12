@@ -290,8 +290,8 @@ add_trp() {
   ${3} -t mangle -F ${4}_EXTERNAL
   ${3} -t mangle -N ${4}_LOCAL
   ${3} -t mangle -F ${4}_LOCAL
-  ${3} -t mangle -N DIVERTSV
-  ${3} -t mangle -F DIVERTSV
+  ${3} -t mangle -N DIVERT
+  ${3} -t mangle -F DIVERT
   ${3} -t mangle -A ${4}_LOCAL -p udp --dport 53 -j MARK --set-mark ${fwmark}
   ${3} -t mangle -A ${4}_LOCAL -p tcp --dport 53 -j MARK --set-mark ${fwmark}
   ${3} -t mangle -A ${4}_EXTERNAL -p udp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
@@ -342,10 +342,10 @@ add_trp() {
   esac
   ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${box_user} --gid-owner ${box_group} -j RETURN
   ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${xray_user} --gid-owner ${xray_group} -j RETURN
-  ${3} -t mangle -A DIVERTSV -j MARK --set-mark "${fwmark}"
-  ${3} -t mangle -A DIVERTSV -j ACCEPT
+  ${3} -t mangle -A DIVERT -j MARK --set-mark "${fwmark}"
+  ${3} -t mangle -A DIVERT -j ACCEPT
   ${3} -t mangle -A PREROUTING -j ${4}_EXTERNAL
-  ${3} -t mangle -I PREROUTING -p tcp -m socket -j DIVERTSV
+  ${3} -t mangle -I PREROUTING -p tcp -m socket -j DIVERT
   ${3} -t mangle -A OUTPUT -j ${4}_LOCAL
   log Info "All $(echo "${4}" | awk '{print $1}') chains have been created" >>"${parent_dir}/log/run.log"
 }
