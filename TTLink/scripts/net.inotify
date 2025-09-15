@@ -69,7 +69,7 @@ case $1 in
   ;;
 esac
 
-if [[ -f "${module_dir}/disable" ]]; then
+if [[ -f "${module_dir}/disable" || "$network_mode" == "tun" ]]; then
   exit 0
 fi
 
