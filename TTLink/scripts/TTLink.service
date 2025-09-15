@@ -552,34 +552,24 @@ description() {
   log Info "${symbol} ${network_mode} ${event}" >>"${parent_dir}/log/run.log"
 }
 
-run_description() {
-  if pidof "${bin_box}" >/dev/null 2>&1; then
-    description "🤪" "started"
-  else
-    description "🥴" "stopped"
-  fi
-}
-
 case "$1" in
 enable)
   if [[ "${network_mode}" == "tproxy" ]]; then
     InChange
     start_trp
-    run_description
   else
     InChange
     start_tun
-    run_description
   fi
+  description "🤪" "started"
   ;;
 disable)
   if [[ "${network_mode}" == "tproxy" ]]; then
     stop_trp
-    run_description
   else
     stop_tun
-    run_description
   fi
+  description "🥴" "stopped"
   ;;
 esac
 
