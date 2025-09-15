@@ -81,4 +81,15 @@ else
   rm_block_loopback
 fi
 
+
+if [[ -f "${module_dir}/disable" || "$network_mode" == "tun" ]]; then
+  exit 0
+elif [[ "$events" == "w" ]]; then
+  rm_block_loopback
+  wait
+  run_block_loopback
+else
+  exit 0
+fi
+
 # net.inotify
