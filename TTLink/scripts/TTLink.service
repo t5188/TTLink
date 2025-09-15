@@ -429,26 +429,6 @@ version() {
   version_xray=$(${bin_xray} version | head -n 1 | awk '{print $2}')
 }
 
-description() {
-  local symbol=$1
-  local event=$2
-  version
-  prop_file="${module_dir}/module.prop"
-  core_name_box="${bin_box##*/}"
-  core_name_xray="${bin_xray##*/}"
-  current_time=$(date "+[%m.%d %H:%M]")
-  sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} work with ${core_name_xray} ${version_xray} ${network_mode} ${event}" "${prop_file}"
-  log Info "${symbol} ${network_mode} ${event}" >>"${parent_dir}/log/run.log"
-}
-
-run_description() {
-  if pidof "${bin_box}" >/dev/null 2>&1; then
-    description "🤪" "started"
-  else
-    description "🥴" "stopped"
-  fi
-}
-
 ownership() {
   chmod 755 ${bin_box} ${bin_xray}
   chown root:net_admin ${bin_box} ${bin_xray}
@@ -557,6 +537,26 @@ InChange() {
     tp_port=$(awk -F':' '/"listen_port"/ {gsub(/[^0-9]/, "", $NF); print $NF; exit}' "${box_confs_dir}"/*.json 2>/dev/null)
   else
     $yq '.inbounds = [{"type":"tun","tag":"tun-in","interface_name":"tun0","mtu":1400,"auto_route":true,"strict_route":true,"endpoint_independent_nat":true,"address":["172.18.0.1/30","fdfe:dcba:9876::1/126"],"stack":"system"}]' -i --output-format=json "${inbounds_config_file}"
+  fi
+}
+
+description() {
+  local symbol=$1
+  local event=$2
+  version
+  prop_file="${module_dir}/module.prop"
+  core_name_box="${bin_box##*/}"
+  core_name_xray="${bin_xray##*/}"
+  current_time=$(date "+[%m.%d %H:%M]")
+  sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} work with ${core_name_xray} ${version_xray} ${network_mode} ${event}" "${prop_file}"
+  log Info "${symbol} ${network_mode} ${event}" >>"${parent_dir}/log/run.log"
+}
+
+run_description() {
+  if pidof "${bin_box}" >/dev/null 2>&1; then
+    description "🤪" "started"
+  else
+    description "🥴" "stopped"
   fi
 }
 
