@@ -4,7 +4,8 @@ scripts_dir=$(dirname ${scripts})
 parent_dir=$(dirname ${scripts_dir})
 
 source ${scripts_dir}/settings.ini
-
+cd ${scripts_dir} # current working directory
+  
 disable_ipv6() {
   echo 0 >/proc/sys/net/ipv6/conf/all/accept_ra
   echo 0 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
@@ -440,7 +441,6 @@ ownership() {
 launch_cores() {
   ulimit -SHn 1000000
   ownership
-  cd ${scripts_dir}
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
     if [[ "${network_mode}" == "tun" ]]; then
