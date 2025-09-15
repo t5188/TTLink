@@ -464,6 +464,7 @@ launch_cores() {
       log Error "Binary missing: $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
       toast "Error: Missing binary $(basename "${bin_xray}"). Please check your installation."
     fi
+    exit 1
   fi
 }
 
@@ -484,9 +485,11 @@ start_tun() {
     stop_tun
     log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
+  InChange
   launch_cores
   add_cron
   toast "TUN已启动"
+  description "🤪" "started"
 }
 
 stop_tun() {
@@ -501,6 +504,7 @@ stop_tun() {
   del_cron
   shutdown_cores
   toast "TUN已关闭"
+  description "🥴" "stopped"
 }
 
 start_trp() {
@@ -510,12 +514,14 @@ start_trp() {
     stop_trp
     log Info "---restart---" >"${parent_dir}/log/run.log"
   fi
+  InChange
   init_uids
   run_add_trp
   run_disable_quic
   launch_cores
   add_cron
   toast "TP已开启"
+  description "🤪" "started"
 }
 
 stop_trp() {
@@ -529,6 +535,7 @@ stop_trp() {
   shutdown_cores
   ${scripts_dir}/net.inotify D
   toast "TP已关闭"
+  description "🥴" "stopped"
 }
 
 InChange() {
@@ -559,13 +566,10 @@ description() {
 case "$1" in
 enable)
   if [[ "${network_mode}" == "tproxy" ]]; then
-    InChange
     start_trp
   else
-    InChange
     start_tun
   fi
-  description "🤪" "started"
   ;;
 disable)
   if [[ "${network_mode}" == "tproxy" ]]; then
@@ -573,7 +577,6 @@ disable)
   else
     stop_tun
   fi
-  description "🥴" "stopped"
   ;;
 esac
 
