@@ -71,19 +71,6 @@ esac
 
 if [[ -f "${module_dir}/disable" || "$network_mode" == "tun" ]]; then
   exit 0
-fi
-
-if [[ "$events" == "w" && "$network_mode" == "tproxy" ]]; then
-  rm_block_loopback
-  wait
-  run_block_loopback
-else
-  rm_block_loopback
-fi
-
-
-if [[ -f "${module_dir}/disable" || "$network_mode" == "tun" ]]; then
-  exit 0
 elif [[ "$events" == "w" ]]; then
   rm_block_loopback
   wait
