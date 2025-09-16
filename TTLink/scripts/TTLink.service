@@ -287,34 +287,38 @@ uidrange() {
 add_trp() {
   ${1} rule add fwmark "${fwmark}" table ${2} priority 1000
   ${1} route add local default dev lo table ${2}
+
   ${3} -t mangle -N ${4}_EXTERNAL
   ${3} -t mangle -F ${4}_EXTERNAL
   ${3} -t mangle -N ${4}_LOCAL
   ${3} -t mangle -F ${4}_LOCAL
   ${3} -t mangle -N DIVERT
   ${3} -t mangle -F DIVERT
+
   ${3} -t mangle -A ${4}_LOCAL -p udp --dport 53 -j MARK --set-mark ${fwmark}
   ${3} -t mangle -A ${4}_LOCAL -p tcp --dport 53 -j MARK --set-mark ${fwmark}
+
   ${3} -t mangle -A ${4}_EXTERNAL -p udp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
   ${3} -t mangle -A ${4}_EXTERNAL -p tcp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
+  
   for subnet in ${5}; do
     ${3} -t mangle -A ${4}_EXTERNAL -d ${subnet} -j RETURN
     ${3} -t mangle -A ${4}_LOCAL -d ${subnet} -j RETURN
   done
-  ${3} -t mangle -A ${4}_EXTERNAL -p tcp -i lo -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
-  ${3} -t mangle -A ${4}_EXTERNAL -p udp -i lo -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
+
   if [[ "${ap_list}" != "" ]]; then
     for ap in ${ap_list[@]}; do
       ${3} -t mangle -A ${4}_EXTERNAL -p tcp -i "${ap}" -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
       ${3} -t mangle -A ${4}_EXTERNAL -p udp -i "${ap}" -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
     done
   fi
+
   if [[ -n "${AIDs}" ]]; then
     for AID in ${AIDs[@]}; do
       ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p tcp -j MARK --set-mark ${fwmark}
       ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p udp -j MARK --set-mark ${fwmark}
     done
-  fi
+  fi  
   case "${proxy_mode}" in
   "blacklist")
     if [[ ${#uids[@]} -gt 0 ]]; then
@@ -341,14 +345,15 @@ add_trp() {
     log Error "proxy_mode incorrect" >>"${parent_dir}/log/run.log"
     ;;
   esac
+
   ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${box_user} --gid-owner ${box_group} -j RETURN
   ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${xray_user} --gid-owner ${xray_group} -j RETURN
   ${3} -t mangle -A DIVERT -j MARK --set-mark "${fwmark}"
   ${3} -t mangle -A DIVERT -j ACCEPT
+
   ${3} -t mangle -A PREROUTING -j ${4}_EXTERNAL
   ${3} -t mangle -I PREROUTING -p tcp -m socket -j DIVERT
-  ${3} -t mangle -A OUTPUT -j ${4}_LOCAL
-  log Info "All $(echo "${4}" | awk '{print $1}') chains have been created" >>"${parent_dir}/log/run.log"
+  ${3} -t mangle -I OUTPUT -j ${4}_LOCAL
 }
 
 del_trp() {
