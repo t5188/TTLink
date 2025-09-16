@@ -383,7 +383,7 @@ add_cron() {
     if pgrep busybox crond >/dev/null; then
       kill -9 $(pgrep busybox crond)
     fi
-    echo "5 */2 * * * touch ${module_dir}/disable && sleep 3 && rm ${module_dir}/disable" > "${crontab_file}"
+    echo "5 0,12 * * * touch ${module_dir}/disable && sleep 3 && rm ${module_dir}/disable" > "${crontab_file}"
     nohup busybox crond -c ${scripts_dir}/ >/dev/null 2>&1 &
     log Info "New task: $(busybox crontab -l -c ${scripts_dir}/)" >>"${parent_dir}/log/run.log"
   else
