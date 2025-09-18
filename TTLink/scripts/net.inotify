@@ -55,8 +55,14 @@ run_block_loopback() {
 }
 
 rm_block_loopback() {
-  block_loopback "${IPV4}" "-D" "${block_name}4" "-4" "${chain_name}4"
-  block_loopback "${IPV6}" "-D" "${block_name}6" "-6" "${chain_name}6"
+  # IPv4
+  if iptables -t mangle -L -n | grep -q "${block_name}4"; then
+    block_loopback "${IPV4}" "-D" "${block_name}4" "-4" "${chain_name}4"
+  fi
+  # IPv6
+  if ip6tables -t mangle -L -n | grep -q "${block_name}6"; then
+    block_loopback "${IPV6}" "-D" "${block_name}6" "-6" "${chain_name}6"
+  fi
 }
 
 case $1 in
