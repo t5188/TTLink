@@ -23,14 +23,16 @@ block_loopback() {
     if [[ "${n}" == "-4" ]]; then
       ip ${n} a | awk '/inet/ {print $2}' | grep -vE "^127.0.0.1" | cut -d'/' -f1 | while read -r local_ipv4; do
         local_ipv4=$(echo "$local_ipv4" | awk -F. '{print $1"."$2".0.0/16"}')
-        ${iptables} -t mangle ${action} ${name} -d $local_ipv4 -j RETURN
+        ${iptables} -t mangle ${action} ${name} -p tcp ! --dport 53 -d $local_ipv4 -j RETURN
+        ${iptables} -t mangle ${action} ${name} -p udp ! --dport 53 -d $local_ipv4 -j RETURN
         cmd_result=$?
         [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv4, anti-loopback rule has been inserted" >>"${parent_dir}/log/run.log"
       done
     elif [[ "${n}" == "-6" ]]; then
        local_ipv6s=($(ip ${n} a | awk '/inet6/ {print $2}' | grep -vE "^fe80|^::1|^fd00" | cut -d'/' -f1 | awk -F: '{print $1":"$2"::/32"}' | sort -u))
         for local_ipv6 in "${local_ipv6s[@]}"; do
-        ${iptables} -t mangle ${action} ${name} -d $local_ipv6 -j RETURN
+        ${iptables} -t mangle ${action} ${name} -p tcp ! --dport 53 -d $local_ipv6 -j RETURN
+        ${iptables} -t mangle ${action} ${name} -p udp ! --dport 53 -d $local_ipv6 -j RETURN
         cmd_result=$?
         [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv6, anti-loopback rule has been inserted" >>"${parent_dir}/log/run.log"
         done
