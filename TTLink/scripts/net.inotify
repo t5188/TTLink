@@ -21,8 +21,8 @@ block_loopback() {
     ${iptables} -t mangle -N ${name}
     ${iptables} -t mangle -F ${name}
     if [[ "${n}" == "-4" ]]; then
-      ip ${n} a | awk '/inet/ {print $2}' | grep -vE "^127.0.0.1" | cut -d'/' -f1 | while read -r local_ipv4; do
-        local_ipv4=$(echo "$local_ipv4" | awk -F. '{print $1"."$2".0.0/16"}')
+        local_ipv4s=($(ip ${n} a | awk '/inet/ {print $2}' | grep -vE "^127.0.0.1" |  awk -F. '{print $1"."$2".0.0/16"}' | sort -u))
+        for local_ipv4 in "${local_ipv4s[@]}"; do
         ${iptables} -t mangle ${action} ${name} -p tcp ! --dport 53 -d $local_ipv4 -j RETURN
         ${iptables} -t mangle ${action} ${name} -p udp ! --dport 53 -d $local_ipv4 -j RETURN
         cmd_result=$?
