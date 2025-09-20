@@ -538,7 +538,6 @@ stop_trp() {
   del_disable_quic
   del_cron
   shutdown_cores
-  ${scripts_dir}/net.inotify D
   toast "TP已关闭"
   description "🥴" "stopped"
 }
