@@ -406,12 +406,8 @@ del_cron() {
 disable_quic() {
   ${1} ${2} OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
   ${1} ${2} OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
-  if [[ "${2}" == "-D" ]]; then
-    while ${1} -C OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT ||
-      ${1} -C OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT; do
-      del_disable_quic
-    done
-  fi
+  ${1} ${2} OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${xray_user} ! --gid-owner ${xray_group} -j REJECT
+  ${1} ${2} OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${xray_user} ! --gid-owner ${xray_group} -j REJECT
 }
 
 run_disable_quic() {
