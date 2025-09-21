@@ -285,101 +285,101 @@ uidrange() {
 }
 
 add_trp() {
-  ${1} rule add fwmark "${fwmark}" table ${2} priority 1000
-  ${1} route add local default dev lo table ${2}
-
-  ${3} -t mangle -N ${4}_EXTERNAL
-  ${3} -t mangle -F ${4}_EXTERNAL
-  ${3} -t mangle -N ${4}_LOCAL
-  ${3} -t mangle -F ${4}_LOCAL
-  ${3} -t mangle -N DIVERT
-  ${3} -t mangle -F DIVERT
-
-  ${3} -t mangle -A ${4}_LOCAL -p udp --dport 53 -j MARK --set-mark ${fwmark}
-  ${3} -t mangle -A ${4}_LOCAL -p tcp --dport 53 -j MARK --set-mark ${fwmark}
-
-  ${3} -t mangle -A ${4}_EXTERNAL -p udp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
-  ${3} -t mangle -A ${4}_EXTERNAL -p tcp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
-  
-  for subnet in ${5}; do
-    ${3} -t mangle -A ${4}_EXTERNAL -d ${subnet} -j RETURN
-    ${3} -t mangle -A ${4}_LOCAL -d ${subnet} -j RETURN
+# Policy routing: fwmark -> table ${table}, then redirect to local (lo) for TPROXY
+  ${1} rule add fwmark "${fwmark}" table ${table} priority 1000
+  ${1} route add local default dev lo table ${table}
+# Initialize custom chains (EXTERNAL, LOCAL)
+  ${2} -t mangle -N ${3}_EXTERNAL
+  ${2} -t mangle -F ${3}_EXTERNAL
+  ${2} -t mangle -N ${3}_LOCAL
+  ${2} -t mangle -F ${3}_LOCAL
+  ${2} -t mangle -N ${3}_BLOCK_LOOPBACK
+  ${2} -t mangle -F ${3}_BLOCK_LOOPBACK
+# Exclude Xray process traffic (prevent proxy loop)
+  ${2} -t mangle -A ${3}_LOCAL -m owner --uid-owner ${box_user} --gid-owner ${box_group} -j RETURN
+  ${2} -t mangle -A ${3}_LOCAL -m owner --uid-owner ${xray_user} --gid-owner ${xray_group} -j RETURN
+# Mark local DNS (53) traffic for proxy routing
+  ${2} -t mangle -A ${3}_LOCAL -p udp --dport 53 -j MARK --set-xmark ${fwmark}
+  ${2} -t mangle -A ${3}_LOCAL -p tcp --dport 53 -j MARK --set-xmark ${fwmark}
+# Redirect external DNS (53) traffic to TPROXY port with mark
+  ${2} -t mangle -A ${3}_EXTERNAL -p udp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
+  ${2} -t mangle -A ${3}_EXTERNAL -p tcp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
+# Bypass specified subnets (do not route them into proxy)
+  ${2} -t mangle -A ${3}_EXTERNAL -j ${3}_BLOCK_LOOPBACK
+  ${2} -t mangle -A ${3}_LOCAL -j ${3}_BLOCK_LOOPBACK
+  for subnet in ${4}; do
+    ${2} -t mangle -A ${3}_EXTERNAL -d ${subnet} -j RETURN
+    ${2} -t mangle -A ${3}_LOCAL -d ${subnet} -j RETURN
   done
-
-  if [[ "${ap_list}" != "" ]]; then
-    for ap in ${ap_list[@]}; do
-      ${3} -t mangle -A ${4}_EXTERNAL -p tcp -i "${ap}" -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
-      ${3} -t mangle -A ${4}_EXTERNAL -p udp -i "${ap}" -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
-    done
-  fi
-
+# Route traffic into the tproxy
+  ${2} -t mangle -A ${3}_EXTERNAL -p tcp -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
+  ${2} -t mangle -A ${3}_EXTERNAL -p udp -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
+# Mark traffic from specified system UIDs for proxy routing
   if [[ -n "${AIDs}" ]]; then
     for AID in ${AIDs[@]}; do
-      ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p tcp -j MARK --set-mark ${fwmark}
-      ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${AID} -p udp -j MARK --set-mark ${fwmark}
+      ${2} -t mangle -A ${3}_LOCAL -m owner --uid-owner ${AID} -p tcp -j MARK --set-xmark ${fwmark}
+      ${2} -t mangle -A ${3}_LOCAL -m owner --uid-owner ${AID} -p udp -j MARK --set-xmark ${fwmark}
     done
-  fi  
+  fi
+# Blacklist mode: exclude specified UIDs (except DNS), all others go through proxy
+# Whitelist mode: only specified UIDs go through proxy, if none specified then all
   case "${proxy_mode}" in
   "blacklist")
     if [[ ${#uids[@]} -gt 0 ]]; then
-      for appid in ${6}; do
-        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p tcp ! --dport 53 -j RETURN
-        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p udp ! --dport 53 -j RETURN
+      for appid in ${uids[*]}; do
+        ${2} -t mangle -A ${3}_LOCAL -m owner --uid-owner ${appid} -p tcp ! --dport 53 -j RETURN
+        ${2} -t mangle -A ${3}_LOCAL -m owner --uid-owner ${appid} -p udp ! --dport 53 -j RETURN
       done
-      ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
+      ${2} -t mangle -A ${3}_LOCAL -j MARK --set-xmark ${fwmark}
     else
-      ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
+      ${2} -t mangle -A ${3}_LOCAL -j MARK --set-xmark ${fwmark}
     fi
     ;;
   "whitelist")
     if [[ ${#uids[@]} -gt 0 ]]; then
-      for appid in ${6}; do
-        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p tcp -j MARK --set-mark ${fwmark}
-        ${3} -t mangle -A ${4}_LOCAL -m owner --uid-owner ${appid} -p udp -j MARK --set-mark ${fwmark}
+      for appid in ${uids[*]}; do
+        ${2} -t mangle -A ${3}_LOCAL -m owner --uid-owner ${appid} -p tcp -j MARK --set-xmark ${fwmark}
+        ${2} -t mangle -A ${3}_LOCAL -m owner --uid-owner ${appid} -p udp -j MARK --set-xmark ${fwmark}
       done
     else
-      ${3} -t mangle -A ${4}_LOCAL -j MARK --set-mark ${fwmark}
+      ${2} -t mangle -A ${3}_LOCAL -j MARK --set-xmark ${fwmark}
     fi
     ;;
   *)
-    log Error "proxy_mode incorrect" >>"${parent_dir}/log/run.log"
+    ${2} -t mangle -A ${3}_LOCAL -j MARK --set-xmark ${fwmark}
+    toast "GLOBAL PROXY, CHECK PROXY_MODE"
     ;;
   esac
-
-  ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${box_user} --gid-owner ${box_group} -j RETURN
-  ${3} -t mangle -I ${4}_LOCAL -m owner --uid-owner ${xray_user} --gid-owner ${xray_group} -j RETURN
-  ${3} -t mangle -A DIVERT -j MARK --set-mark "${fwmark}"
-  ${3} -t mangle -A DIVERT -j ACCEPT
-
-  ${3} -t mangle -A PREROUTING -j ${4}_EXTERNAL
-  ${3} -t mangle -I PREROUTING -p tcp -m socket -j DIVERT
-  ${3} -t mangle -I OUTPUT -j ${4}_LOCAL
+# Attach custom chains: EXTERNAL -> PREROUTING, LOCAL -> OUTPUT
+  ${2} -t mangle -A PREROUTING -j ${3}_EXTERNAL
+  ${2} -t mangle -A OUTPUT -j ${3}_LOCAL
 }
 
 del_trp() {
-  ${1} rule del fwmark "${fwmark}" table ${2} priority 1000
-  ${1} route del local default dev lo table ${2}
-  ${1} route flush table ${2}
-  ${3} -t mangle -D PREROUTING -j ${4}_EXTERNAL
-  ${3} -t mangle -D PREROUTING -p tcp -m socket -j DIVERT
-  ${3} -t mangle -D OUTPUT -j ${4}_LOCAL
-  ${3} -t mangle -F ${4}_EXTERNAL
-  ${3} -t mangle -F DIVERT
-  ${3} -t mangle -F ${4}_LOCAL
-  ${3} -t mangle -X ${4}_EXTERNAL
-  ${3} -t mangle -X DIVERT
-  ${3} -t mangle -X ${4}_LOCAL
+  ${1} rule del fwmark "${fwmark}" table ${table} priority 1000
+  ${1} route del local default dev lo table ${table}
+  ${1} route flush table ${table}
+  ${2} -t mangle -D PREROUTING -j ${3}_EXTERNAL
+  ${2} -t mangle -D OUTPUT -j ${3}_LOCAL
+  ${2} -t mangle -F ${3}_EXTERNAL
+  ${2} -t mangle -F ${3}_LOCAL
+  ${2} -t mangle -F ${3}_BLOCK_LOOPBACK
+  ${2} -t mangle -X ${3}_EXTERNAL
+  ${2} -t mangle -X ${3}_LOCAL
+  ${2} -t mangle -X ${3}_BLOCK_LOOPBACK
 }
 
 run_add_trp() {
   log Info "tp_port: ${tp_port}" >>"${parent_dir}/log/run.log"
-  add_trp "ip -4" "${table}" "${IPV4}" "${chain_name}4" "${intranet4[*]}" "${uids[*]}"
-  add_trp "ip -6" "${table}" "${IPV6}" "${chain_name}6" "${intranet6[*]}" "${uids[*]}"
+  add_trp "ip -4" "${IPV4}" "${chain_name}4" "${intranet4[*]}"
+  [[ "${ip6tables}" == "disable" ]] && return
+  add_trp "ip -6" "${IPV6}" "${chain_name}6" "${intranet6[*]}"
 }
 
 run_del_trp() {
-  del_trp "ip -4" "${table}" "${IPV4}" "${chain_name}4"
-  del_trp "ip -6" "${table}" "${IPV6}" "${chain_name}6"
+  del_trp "ip -4" "${IPV4}" "${chain_name}4"
+  [[ "${ip6tables}" == "disable" ]] && return
+  del_trp "ip -6" "${IPV6}" "${chain_name}6"
 }
 
 add_cron() {
@@ -417,17 +417,17 @@ disable_quic() {
 run_disable_quic() {
   if [[ "${quic}" == "disable" ]]; then
     disable_quic "${IPV4}" "-I"
+    [[ "${ip6tables}" == "disable" ]] && return
     disable_quic "${IPV6}" "-I"
   fi
-  log Info "QUIC has been disabled" >>"${parent_dir}/log/run.log"
 }
 
 del_disable_quic() {
   if [[ "${quic}" == "disable" ]]; then
     disable_quic "${IPV4}" "-D"
+    [[ "${ip6tables}" == "disable" ]] && return
     disable_quic "${IPV6}" "-D"
   fi
-  log Info "QUIC has been enabled" >>"${parent_dir}/log/run.log"
 }
 
 version() {
