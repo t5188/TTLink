@@ -19,8 +19,10 @@ if [ -d "$source_folder" ]; then
     ui_print "- 正在备份已有文件"
     # Delete old folders and update them
     rm -rf "$source_folder"
+    ready_dir=true
 else
     # If the source folder does not exist, output initial installation information 
+    ready_dir=false
     ui_print "- 正在初始安装"
 fi
 
@@ -32,6 +34,7 @@ fi
 
 ui_print "- 正在释放文件"
 unzip -o "$ZIPFILE" 'TTLink/*' -d $unzip_path >&2
+[[  ${ready_dir}  ==  true  ]]  &&  find "${source_folder}" -type f -name "*.json" -exec rm -f {} +
 unzip -o "$ZIPFILE" 'webroot/*' -d "$MODPATH" >&2
 unzip -j -o "$ZIPFILE" 'TTLink.sh' -d /data/adb/service.d >&2
 unzip -j -o "$ZIPFILE" 'uninstall.sh' -d $MODPATH >&2
