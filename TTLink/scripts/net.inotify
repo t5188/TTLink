@@ -46,12 +46,12 @@ run_block_loopback() {
 
 rm_block_loopback() {
   # IPv4
-  if iptables -t mangle -L -n | grep -q "${chain_name}4_BLOCK_LOOPBACK"; then
+  if iptables -t mangle -S "${chain_name}4_BLOCK_LOOPBACK" >/dev/null 2>&1; then
     block_loopback "${IPV4}" "-D" "${chain_name}4" "-4"
   fi
   # IPv6
   [[ "${ip6tables}" == "disable" ]] && return
-  if ip6tables -t mangle -L -n | grep -q "${chain_name}6_BLOCK_LOOPBACK"; then
+  if ip6tables -t mangle -S "${chain_name}6_BLOCK_LOOPBACK" >/dev/null 2>&1; then
     block_loopback "${IPV6}" "-D" "${chain_name}6" "-6"
   fi
 }
