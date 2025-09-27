@@ -298,12 +298,12 @@ add_trp() {
 # Exclude Xray process traffic (prevent proxy loop)
   ${2} -t mangle -A ${3}_LOCAL -m owner --uid-owner ${box_user} --gid-owner ${box_group} -j RETURN
   ${2} -t mangle -A ${3}_LOCAL -m owner --uid-owner ${xray_user} --gid-owner ${xray_group} -j RETURN
-# Mark local DNS (53) traffic for proxy routing
-  ${2} -t mangle -A ${3}_LOCAL -p udp --dport 53 -j MARK --set-xmark ${fwmark}
-  ${2} -t mangle -A ${3}_LOCAL -p tcp --dport 53 -j MARK --set-xmark ${fwmark}
-# Redirect external DNS (53) traffic to TPROXY port with mark
-  ${2} -t mangle -A ${3}_EXTERNAL -p udp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
-  ${2} -t mangle -A ${3}_EXTERNAL -p tcp --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
+  for proto in udp tcp; do
+    # Mark local DNS (53) traffic for proxy routing
+    ${2} -t mangle -A ${3}_LOCAL -p ${proto} --dport 53 -j MARK --set-xmark ${fwmark}
+    # Redirect external DNS (53) traffic to TPROXY port with mark
+    ${2} -t mangle -A ${3}_EXTERNAL -p ${proto} --dport 53 -j TPROXY --on-port ${tp_port} --tproxy-mark ${fwmark}
+  done
 # Bypass specified subnets (do not route them into proxy)
   ${2} -t mangle -A ${3}_EXTERNAL -j ${3}_BLOCK_LOOPBACK
   ${2} -t mangle -A ${3}_LOCAL -j ${3}_BLOCK_LOOPBACK
@@ -312,8 +312,9 @@ add_trp() {
     ${2} -t mangle -A ${3}_LOCAL -d ${subnet} -j RETURN
   done
 # Route traffic into the tproxy
-  ${2} -t mangle -A ${3}_EXTERNAL -p tcp -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
-  ${2} -t mangle -A ${3}_EXTERNAL -p udp -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
+  for proto in udp tcp; do
+    ${2} -t mangle -A ${3}_EXTERNAL -p ${proto} -j TPROXY --on-port "${tp_port}" --tproxy-mark "${fwmark}"
+  done
 # Mark traffic from specified system UIDs for proxy routing
   if [[ -n "${AIDs}" ]]; then
     for AID in ${AIDs[@]}; do
