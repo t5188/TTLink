@@ -192,7 +192,7 @@ forward() {
     ip_rules "add"
     log Info "IP forwarding has been enabled" >>"${parent_dir}/log/run.log"
   elif [[ "${action}" == "-D" ]]; then
-    disable_ipv6
+    # disable_ipv6
     ip_rules "del"
     log Info "IP forwarding has been disabled" >>"${parent_dir}/log/run.log"
   fi
