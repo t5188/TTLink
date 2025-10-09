@@ -116,6 +116,8 @@ ipt_tun() {
   esac
   ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
   ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
+  ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${xray_user} ! --gid-owner ${xray_group} -j REJECT
+  ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${xray_user} ! --gid-owner ${xray_group} -j REJECT
   case "${action}" in
   "add" | "-A" | "-I")
     log Info "${iptables} QUIC has been created" >>"${parent_dir}/log/run.log"
