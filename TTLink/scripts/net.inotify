@@ -40,7 +40,6 @@ fi
 
 run_block_loopback() {
   block_loopback "${IPV}" "-I" "${chain_name}4" "-4"
-  [[ "${ip6tables}" == "disable" ]] && return
   block_loopback "${IP6V}" "-I" "${chain_name}6" "-6"
 }
 
@@ -50,7 +49,6 @@ rm_block_loopback() {
     block_loopback "${IPV}" "-D" "${chain_name}4" "-4"
   fi
   # IPv6
-  [[ "${ip6tables}" == "disable" ]] && return
   if ip6tables -t mangle -S "${chain_name}6_BLOCK_LOOPBACK" >/dev/null 2>&1; then
     block_loopback "${IP6V}" "-D" "${chain_name}6" "-6"
   fi
