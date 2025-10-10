@@ -6,10 +6,10 @@ monitor_file=$3
 if [[ "${monitor_file}" == "disable" ]]; then
   case "${events}" in
   "d")
-    ./TTLink.service enable >/dev/null 2>&1
+    $(pwd)/TTLink.service enable >/dev/null 2>&1
     ;;
   "n")
-    ./TTLink.service disable >/dev/null 2>&1
+    $(pwd)/TTLink.service disable >/dev/null 2>&1
     ;;
   esac
 fi
