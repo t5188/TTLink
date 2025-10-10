@@ -1,17 +1,15 @@
 #!/system/bin/sh
-scripts=$(realpath $0)
-scripts_dir=$(dirname ${scripts})
-
+cd ${0%/*} # current working directory
 events=$1
 monitor_file=$3
 
 if [[ "${monitor_file}" == "disable" ]]; then
   case "${events}" in
   "d")
-    ${scripts_dir}/TTLink.service enable >/dev/null 2>&1
+    ./TTLink.service enable >/dev/null 2>&1
     ;;
   "n")
-    ${scripts_dir}/TTLink.service disable >/dev/null 2>&1
+    ./TTLink.service disable >/dev/null 2>&1
     ;;
   esac
 fi
