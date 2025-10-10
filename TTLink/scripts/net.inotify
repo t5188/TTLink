@@ -18,7 +18,7 @@ if [[ "${action}" != "-D" ]]; then
       ${iptables} -t mangle ${action} ${name} -p tcp -d $local_ipv4 -j ACCEPT
       ${iptables} -t mangle ${action} ${name} -p udp -d $local_ipv4 -j ACCEPT
       cmd_result=$?
-      [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv4, anti-loopback rule has been inserted" >>"../log/run.log"
+      [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv4, anti-loopback rule has been inserted" >>"$(dirname $(pwd))/log/run.log"
     done
   elif [[ "${n}" == "-6" ]]; then
     local_ipv6s=($(ip ${n} a | awk '/inet6/ {print $2}' | grep -vE "^fe80|^::1|^fd00" | awk -F: '{print $1":"$2"::/32"}' | sort -u))
@@ -26,7 +26,7 @@ if [[ "${action}" != "-D" ]]; then
       ${iptables} -t mangle ${action} ${name} -p tcp -d $local_ipv6 -j ACCEPT
       ${iptables} -t mangle ${action} ${name} -p udp -d $local_ipv6 -j ACCEPT
       cmd_result=$?
-      [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv6, anti-loopback rule has been inserted" >>"../log/run.log"
+      [[ "${cmd_result}" == "0" ]] && log Info "local ip is $local_ipv6, anti-loopback rule has been inserted" >>"$(dirname $(pwd))/log/run.log"
     done
   fi
 else
