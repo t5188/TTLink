@@ -1,18 +1,14 @@
 #!/system/bin/sh
-scripts=$(realpath $0)
-scripts_dir=$(dirname ${scripts})
-parent_dir=$(dirname ${scripts_dir})
+cd ${0%/*} # current working directory
+source ./settings.ini
 
-source ${scripts_dir}/settings.ini
-cd ${scripts_dir} # current working directory
-  
 disable_ipv6() {
   echo 0 >/proc/sys/net/ipv6/conf/all/accept_ra
   echo 0 >/proc/sys/net/ipv6/conf/wlan0/accept_ra
   echo 1 >/proc/sys/net/ipv6/conf/all/disable_ipv6
   echo 1 >/proc/sys/net/ipv6/conf/default/disable_ipv6
   echo 1 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
-  log Info "IPv6 has been disabled" >>"${parent_dir}/log/run.log"
+  log Info "IPv6 has been disabled" >>"../log/run.log"
 }
 
 enable_ipv6() {
@@ -21,14 +17,14 @@ enable_ipv6() {
   echo 0 >/proc/sys/net/ipv6/conf/all/disable_ipv6
   echo 0 >/proc/sys/net/ipv6/conf/default/disable_ipv6
   echo 0 >/proc/sys/net/ipv6/conf/wlan0/disable_ipv6
-  log Info "IPv6 has been enabled" >>"${parent_dir}/log/run.log"
+  log Info "IPv6 has been enabled" >>"../log/run.log"
 }
 
 device_index() {
   local max_retries=10
   local retry_count=0
   index=""
-  if [ ! -f "${scripts_dir}/tables.tmp" ]; then
+  if [ ! -f "./tables.tmp" ]; then
     device=$(awk -F'"' '/"interface_name"/ {print $4; exit}' ${box_confs_dir}/*.json)
     while [ -z "$index" ] && [ $retry_count -lt $max_retries ]; do
       index=$(ip route show table all | grep -E "default dev ${device} table [0-9]" | head -n 1 | awk '{print $5}')
@@ -37,12 +33,12 @@ device_index() {
       fi
       sleep 2
       retry_count=$((retry_count + 1))
-      log Info "Attempting to fetch index (Attempt ${retry_count}/${max_retries})" >>"${parent_dir}/log/run.log"
+      log Info "Attempting to fetch index (Attempt ${retry_count}/${max_retries})" >>"../log/run.log"
     done
-    [[ -n "${index}" ]] && echo "${index} ${device}" >${scripts_dir}/tables.tmp
-    [[ -z "${index}" ]] && log Error "Failed to fetch index" >>"${parent_dir}/log/run.log" && exit 1
+    [[ -n "${index}" ]] && echo "${index} ${device}" >./tables.tmp
+    [[ -z "${index}" ]] && log Error "Failed to fetch index" >>"../log/run.log" && exit 1
   fi
-  read index device <"${scripts_dir}/tables.tmp"
+  read index device <"./tables.tmp"
 }
 
 ip_rules() {
@@ -63,10 +59,10 @@ ip_rules() {
   done
   case "${action}" in
   "add" | "-A" | "-I")
-    log Info "IPv4 rules have been created" >>"${parent_dir}/log/run.log"
+    log Info "IPv4 rules have been created" >>"../log/run.log"
     ;;
   "del" | "-D")
-    log Info "IPv4 rules have been removed" >>"${parent_dir}/log/run.log"
+    log Info "IPv4 rules have been removed" >>"../log/run.log"
     ;;
   esac
   ipv6_rules=(
@@ -84,10 +80,10 @@ ip_rules() {
   done
   case "${action}" in
   "add" | "-A" | "-I")
-    log Info "IPv6 rules have been created" >>"${parent_dir}/log/run.log"
+    log Info "IPv6 rules have been created" >>"../log/run.log"
     ;;
   "del" | "-D")
-    log Info "IPv6 rules have been removed" >>"${parent_dir}/log/run.log"
+    log Info "IPv6 rules have been removed" >>"../log/run.log"
     ;;
   esac
 }
@@ -108,10 +104,10 @@ ipt_tun() {
   fi
   case "${action}" in
   "add" | "-A" | "-I")
-    log Info "${iptables} TUN_FORWARD chain has been created" >>"${parent_dir}/log/run.log"
+    log Info "${iptables} TUN_FORWARD chain has been created" >>"../log/run.log"
     ;;
   "del" | "-D")
-    log Info "${iptables} TUN_FORWARD chain has been removed" >>"${parent_dir}/log/run.log"
+    log Info "${iptables} TUN_FORWARD chain has been removed" >>"../log/run.log"
     ;;
   esac
   ${iptables} "${action}" OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
@@ -120,10 +116,10 @@ ipt_tun() {
   ${iptables} "${action}" OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${xray_user} ! --gid-owner ${xray_group} -j REJECT
   case "${action}" in
   "add" | "-A" | "-I")
-    log Info "${iptables} QUIC has been created" >>"${parent_dir}/log/run.log"
+    log Info "${iptables} QUIC has been created" >>"../log/run.log"
     ;;
   "del" | "-D")
-    log Info "${iptables} QUIC has been removed" >>"${parent_dir}/log/run.log"
+    log Info "${iptables} QUIC has been removed" >>"../log/run.log"
     ;;
   esac
 }
@@ -143,10 +139,10 @@ dns_tun() {
     ${ip} route ${action1} default dev ${device} table ${index}
     case "${action1}" in
     "add" | "-A" | "-I")
-      log Info "${ip} DNS2TUN rule has been created" >>"${parent_dir}/log/run.log"
+      log Info "${ip} DNS2TUN rule has been created" >>"../log/run.log"
       ;;
     "del" | "-D")
-      log Info "${ip} DNS2TUN rule has been removed" >>"${parent_dir}/log/run.log"
+      log Info "${ip} DNS2TUN rule has been removed" >>"../log/run.log"
       ;;
     esac
     if [[ "${action}" != "-D" ]]; then
@@ -156,7 +152,7 @@ dns_tun() {
       ${iptables} -t mangle ${action} ${name} -p tcp --dport 53 -j MARK --set-mark 53
       case "${action1}" in
       "add" | "-A" | "-I")
-        log Info "${iptables} ${name} rule has been created" >>"${parent_dir}/log/run.log"
+        log Info "${iptables} ${name} rule has been created" >>"../log/run.log"
         ;;
       esac
     fi
@@ -165,7 +161,7 @@ dns_tun() {
     if [[ "${action}" == "-D" ]]; then
       ${iptables} -t mangle -F ${name}
       ${iptables} -t mangle -X ${name}
-      log Info "${iptables} ${name} rule has been removed" >>"${parent_dir}/log/run.log"
+      log Info "${iptables} ${name} rule has been removed" >>"../log/run.log"
     fi
   else
     return
@@ -190,11 +186,11 @@ forward() {
     echo 2 >/proc/sys/net/ipv4/conf/all/rp_filter
     enable_ipv6
     ip_rules "add"
-    log Info "IP forwarding has been enabled" >>"${parent_dir}/log/run.log"
+    log Info "IP forwarding has been enabled" >>"../log/run.log"
   elif [[ "${action}" == "-D" ]]; then
     # disable_ipv6
     ip_rules "del"
-    log Info "IP forwarding has been disabled" >>"${parent_dir}/log/run.log"
+    log Info "IP forwarding has been disabled" >>"../log/run.log"
   fi
   ipt_tun "iptables" "${action}"
   ipt_tun "ip6tables" "${action}"
@@ -203,15 +199,15 @@ forward() {
 init_uids() {
   uid=""
   uids=()
-  if [ -f "${parent_dir}/log/uids.list" ]; then
-    rm "${parent_dir}/log/uids.list"
+  if [ -f "../log/uids.list" ]; then
+    rm "../log/uids.list"
   fi
 
   for package_name in "${package_list[@]}"; do
     uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
     if [ -n "${uid}" ]; then
       uids+=("${uid}")
-      echo "${package_name}: ${uid}" >>"${parent_dir}/log/uids.list"
+      echo "${package_name}: ${uid}" >>"../log/uids.list"
     fi
   done
 
@@ -220,11 +216,11 @@ init_uids() {
     if [ -n "${uid}" ]; then
       uid="999$uid"
       uids+=("${uid}")
-      echo "${package_name}: ${uid}" >>"${parent_dir}/log/uids.list"
+      echo "${package_name}: ${uid}" >>"../log/uids.list"
     fi
   done
 
-  sort -t ':' -k2 -n "${parent_dir}/log/uids.list" -o "${parent_dir}/log/uids.list"
+  sort -t ':' -k2 -n "../log/uids.list" -o "../log/uids.list"
   uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
 }
 
@@ -277,11 +273,11 @@ uidrange() {
 
   case "${action}" in
   "add" | "-A" | "-I")
-    log Info "Package rules have been created" >>"${parent_dir}/log/run.log"
-    log Info "proxy_mode: ${proxy_mode}" >>"${parent_dir}/log/run.log"
+    log Info "Package rules have been created" >>"../log/run.log"
+    log Info "proxy_mode: ${proxy_mode}" >>"../log/run.log"
     ;;
   "del" | "-D")
-    log Info "Package rules have been removed" >>"${parent_dir}/log/run.log"
+    log Info "Package rules have been removed" >>"../log/run.log"
     ;;
   esac
 }
@@ -373,7 +369,7 @@ del_trp() {
 }
 
 run_add_trp() {
-  log Info "tp_port: ${tp_port}" >>"${parent_dir}/log/run.log"
+  log Info "tp_port: ${tp_port}" >>"../log/run.log"
   add_trp "ip -4" "${IPV}" "${chain_name}4" "${intranet4[*]}"
   add_trp "ip -6" "${IP6V}" "${chain_name}6" "${intranet6[*]}"
 }
@@ -385,22 +381,22 @@ run_del_trp() {
 
 add_cron() {
   if [[ "${crond_task}" == "enable" ]]; then
-    crontab_file="${scripts_dir}/root"
+    crontab_file="./root"
     if pgrep busybox crond >/dev/null; then
       kill -9 $(pgrep busybox crond)
     fi
     echo "5 0,12 * * * touch ${module_dir}/disable && sleep 3 && rm ${module_dir}/disable" > "${crontab_file}"
-    nohup busybox crond -c ${scripts_dir}/ >/dev/null 2>&1 &
-    log Info "New task: $(busybox crontab -l -c ${scripts_dir}/)" >>"${parent_dir}/log/run.log"
+    nohup busybox crond -c ./ >/dev/null 2>&1 &
+    log Info "New task: $(busybox crontab -l -c ./)" >>"../log/run.log"
   else
-    log Warn "crond_task is not set to enable. No crond task created." >>"${parent_dir}/log/run.log"
+    log Warn "crond_task is not set to enable. No crond task created." >>"../log/run.log"
   fi
 }
 
 del_cron() {
   if pgrep busybox crond >/dev/null; then
     kill -9 $(pgrep busybox crond)
-    rm ${scripts_dir}/root >/dev/null 2>&1
+    rm ./root >/dev/null 2>&1
   fi
 }
 
@@ -434,15 +430,15 @@ ownership() {
   chmod 755 ${bin_box} ${bin_xray}
   chown root:net_admin ${bin_box} ${bin_xray}
   chmod o+rw ${public_log_dir}
-  find "${parent_dir}" -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
-  log Info "Ownership has been set" >>"${parent_dir}/log/run.log"
+  find ".." -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
+  log Info "Ownership has been set" >>"../log/run.log"
 }
 
 launch_cores() {
   ulimit -SHn 1000000
   ownership
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
-    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ${parent_dir}/binary/ >/dev/null 2>&1 &
+    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D ../binary/ >/dev/null 2>&1 &
     if [[ "${network_mode}" == "tun" ]]; then
       forward -I
       uidrange add
@@ -450,18 +446,18 @@ launch_cores() {
     fi
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confx_dir} >/dev/null 2>&1 &
     pid=$(pidof "${bin_xray}")
-    log Info "xray process (${pid}) started." >>"${parent_dir}/log/run.log"
+    log Info "xray process (${pid}) started." >>"../log/run.log"
     pid=$(pidof "${bin_box}")
-    log Info "sing-box process (${pid}) started." >>"${parent_dir}/log/run.log"
+    log Info "sing-box process (${pid}) started." >>"../log/run.log"
   else
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
-      log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
+      log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"../log/run.log"
       toast "Error: Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}"). Please check your installation."
     elif [[ ! -f "${bin_box}" ]]; then
-      log Error "Binary missing: $(basename "${bin_box}")" >>"${parent_dir}/log/run.log"
+      log Error "Binary missing: $(basename "${bin_box}")" >>"../log/run.log"
       toast "Error: Missing binary $(basename "${bin_box}"). Please check your installation."
     elif [[ ! -f "${bin_xray}" ]]; then
-      log Error "Binary missing: $(basename "${bin_xray}")" >>"${parent_dir}/log/run.log"
+      log Error "Binary missing: $(basename "${bin_xray}")" >>"../log/run.log"
       toast "Error: Missing binary $(basename "${bin_xray}"). Please check your installation."
     fi
     exit 1
@@ -471,19 +467,19 @@ launch_cores() {
 shutdown_cores() {
   pid=$(pidof "${bin_xray}")
   kill "${pid}" >/dev/null 2>&1
-  log Info "xray process (${pid}) terminated." >>"${parent_dir}/log/run.log"
+  log Info "xray process (${pid}) terminated." >>"../log/run.log"
   pid=$(pidof "${bin_box}")
   kill "${pid}" >/dev/null 2>&1
-  log Info "sing-box process (${pid}) terminated." >>"${parent_dir}/log/run.log"
-  find "${parent_dir}" -type f \( -name "*.log" -o -name "*.list" \) ! -name "run.log" -exec rm -f {} +
+  log Info "sing-box process (${pid}) terminated." >>"../log/run.log"
+  find ".." -type f \( -name "*.log" -o -name "*.list" \) ! -name "run.log" -exec rm -f {} +
 }
 
 start_tun() {
-  log Info "---welcome---" >"${parent_dir}/log/run.log"
+  log Info "---welcome---" >"../log/run.log"
   if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
     log Info "Close existing processes"
     stop_tun
-    log Info "---restart---" >"${parent_dir}/log/run.log"
+    log Info "---restart---" >"../log/run.log"
   fi
   InChange
   launch_cores
@@ -496,11 +492,11 @@ stop_tun() {
   if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
     exit 1
   fi
-  log Info "---goodbye---" >"${parent_dir}/log/run.log"
+  log Info "---goodbye---" >"../log/run.log"
   forward -D
   [[ "${dns2tun}" == "enable" ]] && rm_dns_tun
   uidrange del
-  rm -f ${scripts_dir}/tables.tmp
+  rm -f ./tables.tmp
   del_cron
   shutdown_cores
   toast "TUN已关闭"
@@ -508,11 +504,11 @@ stop_tun() {
 }
 
 start_trp() {
-  log Info "---welcome---" >"${parent_dir}/log/run.log"
+  log Info "---welcome---" >"../log/run.log"
   if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
     log Info "Close existing processes"
     stop_trp
-    log Info "---restart---" >"${parent_dir}/log/run.log"
+    log Info "---restart---" >"../log/run.log"
   fi
   InChange
   init_uids
@@ -528,7 +524,7 @@ stop_trp() {
   if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
     exit 1
   fi
-  log Info "---goodbye---" >"${parent_dir}/log/run.log"
+  log Info "---goodbye---" >"../log/run.log"
   run_del_trp >/dev/null 2>&1
   del_disable_quic
   del_cron
@@ -544,7 +540,7 @@ InChange() {
   elif [[ "${network_mode}" == "tun" ]]; then
     $yq '.inbounds = [{"type":"tun","tag":"tun-in","interface_name":"tun0","mtu":1400,"auto_route":true,"strict_route":true,"endpoint_independent_nat":true,"address":["172.18.0.1/30","fdfe:dcba:9876::1/126"],"stack":"system"}]' -i --output-format=json "${inbounds_config_file}"
   else
-    log Warn "Only supports tproxy or tun " > "${parent_dir}/log/run.log"
+    log Warn "Only supports tproxy or tun " > "../log/run.log"
     toast "network_mode Error"
     exit 1
   fi
@@ -559,7 +555,7 @@ description() {
   core_name_xray="${bin_xray##*/}"
   current_time=$(date "+[%m.%d %H:%M]")
   sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} work with ${core_name_xray} ${version_xray} ${network_mode} ${event}" "${prop_file}"
-  log Info "${symbol} ${network_mode} ${event}" >>"${parent_dir}/log/run.log"
+  log Info "${symbol} ${network_mode} ${event}" >>"../log/run.log"
 }
 
 case "$1" in
