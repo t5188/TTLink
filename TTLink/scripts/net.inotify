@@ -1,9 +1,7 @@
 #!/system/bin/sh
 cd ${0%/*} # current working directory
 source ./settings.ini
-
 events=$1
-
 [[ ${netChange} = "disable" ]] && exit 0
 
 block_loopback() {
