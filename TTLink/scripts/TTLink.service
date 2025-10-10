@@ -1,6 +1,6 @@
 #!/system/bin/sh
 cd ${0%/*} # current working directory
-source ./settings.ini
+source $(pwd)/settings.ini
 
 disable_ipv6() {
   echo 0 >/proc/sys/net/ipv6/conf/all/accept_ra
@@ -22,7 +22,7 @@ device_index() {
   local max_retries=10
   local retry_count=0
   index=""
-  if [ ! -f "./tables.tmp" ]; then
+  if [ ! -f "$(pwd)/tables.tmp" ]; then
     device=$(awk -F'"' '/"interface_name"/ {print $4; exit}' ${box_confs_dir}/*.json)
     while [ -z "$index" ] && [ $retry_count -lt $max_retries ]; do
       index=$(ip route show table all | grep -E "default dev ${device} table [0-9]" | head -n 1 | awk '{print $5}')
@@ -33,10 +33,10 @@ device_index() {
       retry_count=$((retry_count + 1))
       log Info "Attempting to fetch index (Attempt ${retry_count}/${max_retries})" >>"$(dirname $(pwd))/log/run.log"
     done
-    [[ -n "${index}" ]] && echo "${index} ${device}" >./tables.tmp
+    [[ -n "${index}" ]] && echo "${index} ${device}" >$(pwd)/tables.tmp
     [[ -z "${index}" ]] && log Error "Failed to fetch index" >>"$(dirname $(pwd))/log/run.log" && exit 1
   fi
-  read index device <"./tables.tmp"
+  read index device <"$(pwd)/tables.tmp"
 }
 
 ip_rules() {
@@ -379,13 +379,13 @@ run_del_trp() {
 
 add_cron() {
   if [[ "${crond_task}" == "enable" ]]; then
-    crontab_file="./root"
+    crontab_file="$(pwd)/root"
     if pgrep busybox crond >/dev/null; then
       kill -9 $(pgrep busybox crond)
     fi
     echo "5 0,12 * * * touch ${module_dir}/disable && sleep 3 && rm ${module_dir}/disable" > "${crontab_file}"
-    nohup busybox crond -c ./ >/dev/null 2>&1 &
-    log Info "New task: $(busybox crontab -l -c ./)" >>"$(dirname $(pwd))/log/run.log"
+    nohup busybox crond -c $(pwd)/ >/dev/null 2>&1 &
+    log Info "New task: $(busybox crontab -l -c $(pwd)/)" >>"$(dirname $(pwd))/log/run.log"
   else
     log Warn "crond_task is not set to enable. No crond task created." >>"$(dirname $(pwd))/log/run.log"
   fi
@@ -394,7 +394,7 @@ add_cron() {
 del_cron() {
   if pgrep busybox crond >/dev/null; then
     kill -9 $(pgrep busybox crond)
-    rm ./root >/dev/null 2>&1
+    rm $(pwd)/root >/dev/null 2>&1
   fi
 }
 
@@ -494,7 +494,7 @@ stop_tun() {
   forward -D
   [[ "${dns2tun}" == "enable" ]] && rm_dns_tun
   uidrange del
-  rm -f ./tables.tmp
+  rm -f $(pwd)/tables.tmp
   del_cron
   shutdown_cores
   toast "TUN已关闭"
