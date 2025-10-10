@@ -1,6 +1,6 @@
 #!/system/bin/sh
 cd ${0%/*} # current working directory
-source ./settings.ini
+source $(pwd)/settings.ini
 events=$1
 [[ ${netChange} = "disable" ]] && exit 0
 
