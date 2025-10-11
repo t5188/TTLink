@@ -513,6 +513,7 @@ start_trp() {
     log Info "---restart---" >"$(dirname $(pwd))/log/run.log"
   fi
   InChange
+  enable_ipv6
   init_uids
   run_add_trp
   run_disable_quic
@@ -531,6 +532,7 @@ stop_trp() {
   del_disable_quic
   del_cron
   shutdown_cores
+  disable_ipv6
   toast "TP已关闭"
   description "🥴" "stopped"
 }
