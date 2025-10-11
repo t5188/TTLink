@@ -190,7 +190,6 @@ forward() {
     ip_rules "add"
     log Info "IP forwarding has been enabled" >>"$(dirname $(pwd))/log/run.log"
   elif [[ "${action}" == "-D" ]]; then
-    disable_ipv6
     ip_rules "del"
     log Info "IP forwarding has been disabled" >>"$(dirname $(pwd))/log/run.log"
   fi
@@ -532,7 +531,6 @@ stop_trp() {
   del_disable_quic
   del_cron
   shutdown_cores
-  disable_ipv6
   toast "TP已关闭"
   description "🥴" "stopped"
 }
