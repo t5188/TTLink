@@ -438,6 +438,8 @@ ownership() {
 launch_cores() {
   ulimit -SHn 1000000
   ownership
+  init_outbound
+  ech-tunnel
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D $(dirname $(pwd))/binary/ >/dev/null 2>&1 &
     if [[ "${network_mode}" == "tun" ]]; then
@@ -472,6 +474,7 @@ shutdown_cores() {
   pid=$(pidof "${bin_box}")
   kill "${pid}" >/dev/null 2>&1
   log Info "sing-box process (${pid}) terminated." >>"$(dirname $(pwd))/log/run.log"
+  killall -9 ech-tunnel >/dev/null 2>&1
   find ".." -type f \( -name "*.log" -o -name "*.list" \) ! -name "run.log" -exec rm -f {} +
 }
 
