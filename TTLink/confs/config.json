@@ -88,6 +88,9 @@
       "type": "selector",
       "tag": "proxy",
       "outbounds": [
+        "ech-tunnel",
+        "222+236tunnel",
+        "107+058tunnel",
         "222+236CE",
         "004R",
         "107+058RR",
@@ -97,6 +100,24 @@
       ],
       "default": "222+236CE",
       "interrupt_exist_connections": true
+    },
+    {
+      "type": "socks",
+      "tag": "ech-tunnel",
+      "server": "127.0.0.1",
+      "server_port": 1070
+    },
+    {
+      "type": "socks",
+      "tag": "222+236tunnel",
+      "server": "127.0.0.1",
+      "server_port": 1079
+    },
+    {
+      "type": "socks",
+      "tag": "107+058tunnel",
+      "server": "127.0.0.1",
+      "server_port": 1080
     },
     {
       "type": "socks",
