@@ -6,12 +6,9 @@ source "$(pwd)/TTLink.service"
 
 proxy_service() {
   if [[ ! -f "${module_dir}/disable" ]]; then
-    log Info "Module Enabled"
-    log Info "Start TTLink"
     $(pwd)/TTLink.service enable >/dev/null 2>&1
   else
-    log Warn "Module Disabled"
-    log Info "Module Disabled" >$(dirname $(pwd))/log/run.log
+    toast "Module Disabled"
   fi
 }
 

@@ -37,7 +37,7 @@ device_index() {
       retry_count=$((retry_count + 1))
     done
     [[ -n "${index}" ]] && echo "${index} ${device}" >$(pwd)/tables.tmp
-    [[ -z "${index}" ]] && log Error "Failed to fetch index" >>"$(dirname $(pwd))/log/run.log" && exit 1
+    [[ -z "${index}" ]] && toast "Failed to fetch index" && exit 1
   fi
   read index device <"$(pwd)/tables.tmp"
 }
@@ -267,7 +267,6 @@ del_trp() {
 }
 
 run_add_trp() {
-  log Info "tp_port: ${tp_port}" >>"$(dirname $(pwd))/log/run.log"
   add_trp "ip -4" "${IPV}" "${chain_name}4" "${intranet4[*]}"
   add_trp "ip -6" "${IP6V}" "${chain_name}6" "${intranet6[*]}"
 }
@@ -309,7 +308,7 @@ launch_cores() {
   ulimit -SHn 1000000
   ownership
   init_outbound
-  [ "${ENABLE_THIRD_CORE}" -eq 0 ] && ech-tunnel
+  ech-tunnel
   pid_3core=$!
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D $(dirname $(pwd))/binary/ >/dev/null 2>&1 &
@@ -324,7 +323,7 @@ launch_cores() {
 
     echo "${bin_box##*/}:${pid_box}" >"$(dirname "$(pwd)")/log/pid.txt"
     echo "${bin_xray##*/}:${pid_xray}" >>"$(dirname "$(pwd)")/log/pid.txt"
-    [ "${ENABLE_THIRD_CORE}" -eq 0 ] && echo "${bin_3core##*/}:${pid_3core}" >>"$(dirname "$(pwd)")/log/pid.txt"
+    [ -n "${pid_3core}" ] && echo "${bin_3core##*/}:${pid_3core}" >>"$(dirname "$(pwd)")/log/pid.txt"
     
   else
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
@@ -346,16 +345,13 @@ shutdown_cores() {
 }
 
 start_tun() {
-  log Info "---welcome---" >"$(dirname $(pwd))/log/run.log"
   if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
-    log Info "Close existing processes"
     stop_tun
-    log Info "---restart---" >"$(dirname $(pwd))/log/run.log"
   fi
   InChange
   launch_cores
   add_cron
-  toast "TUN已启动"
+  toast "🤪TUN ENABLED"
   description "🤪" "started"
 }
 
@@ -363,23 +359,19 @@ stop_tun() {
   if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
     exit 1
   fi
-  log Info "---goodbye---" >"$(dirname $(pwd))/log/run.log"
   forward -D
   [[ "${dns2tun}" == "enable" ]] && rm_dns_tun
   uidrange del
   rm -f $(pwd)/tables.tmp
   del_cron
   shutdown_cores
-  toast "TUN已关闭"
+  toast "🥴TUN DISABLED"
   description "🥴" "stopped"
 }
 
 start_trp() {
-  log Info "---welcome---" >"$(dirname $(pwd))/log/run.log"
   if [[ -n $(pidof "${bin_box}") || -n $(pidof "${bin_xray}") ]]; then
-    log Info "Close existing processes"
     stop_trp
-    log Info "---restart---" >"$(dirname $(pwd))/log/run.log"
   fi
   InChange
   enable_ipv6
@@ -388,7 +380,7 @@ start_trp() {
   run_disable_quic
   launch_cores
   add_cron
-  toast "TP已开启"
+  toast "🤪TP ENABLED"
   description "🤪" "started"
 }
 
@@ -396,12 +388,11 @@ stop_trp() {
   if [[ -z $(pidof "${bin_box}") && -z $(pidof "${bin_xray}") ]]; then
     exit 1
   fi
-  log Info "---goodbye---" >"$(dirname $(pwd))/log/run.log"
   run_del_trp >/dev/null 2>&1
   del_disable_quic
   del_cron
   shutdown_cores
-  toast "TP已关闭"
+  toast "🥴TP DISABLED"
   description "🥴" "stopped"
 }
 
