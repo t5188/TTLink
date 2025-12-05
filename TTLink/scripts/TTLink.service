@@ -378,10 +378,9 @@ launch_cores() {
       [[ "${dns2tun}" == "enable" ]] && exec_dns_tun
     fi
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confx_dir} >/dev/null 2>&1 &
-    pid=$(pidof "${bin_xray}")
-    log Info "xray process (${pid}) started." >>"$(dirname $(pwd))/log/run.log"
-    pid=$(pidof "${bin_box}")
-    log Info "sing-box process (${pid}) started." >>"$(dirname $(pwd))/log/run.log"
+    echo "${bin_box##*/}:$(pidof ${bin_box})" >$(dirname $(pwd))/log/pid.txt
+    echo "${bin_xray##*/}:$(pidof ${bin_xray})" >>$(dirname $(pwd))/log/pid.txt
+    echo "${bin_3core##*/}:$(pidof ${bin_3core})" >>$(dirname $(pwd))/log/pid.txt
   else
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
       log Error "Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}")" >>"$(dirname $(pwd))/log/run.log"
@@ -398,14 +397,8 @@ launch_cores() {
 }
 
 shutdown_cores() {
-  pid=$(pidof "${bin_xray}")
-  kill "${pid}" >/dev/null 2>&1
-  log Info "xray process (${pid}) terminated." >>"$(dirname $(pwd))/log/run.log"
-  pid=$(pidof "${bin_box}")
-  kill "${pid}" >/dev/null 2>&1
-  log Info "sing-box process (${pid}) terminated." >>"$(dirname $(pwd))/log/run.log"
-  killall -9 ech-tunnel >/dev/null 2>&1
-  find ".." -type f \( -name "*.log" -o -name "*.list" \) ! -name "run.log" -exec rm -f {} +
+  awk -F':' '{print $1}' "$(dirname "$(pwd)")/log/pid.txt" | while read core_name; do killall -9 "${core_name}" >/dev/null 2>&1; done
+  find ".." -type f \( -name "*.log" -o -name "*.txt" -o -name "*.list" \) ! -name "run.log" -exec rm -f {} +
 }
 
 start_tun() {
