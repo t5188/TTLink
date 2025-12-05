@@ -318,10 +318,7 @@ launch_cores() {
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confx_dir} >/dev/null 2>&1 &
     pid_xray=$!
     ech-tunnel
-    echo "${bin_box##*/}:${pid_box}" >"$(dirname "$(pwd)")/log/pid.txt"
-    echo "${bin_xray##*/}:${pid_xray}" >>"$(dirname "$(pwd)")/log/pid.txt"
-    [ -n "${pid_3core}" ] && echo "${bin_3core##*/}:${pid_3core}" >>"$(dirname "$(pwd)")/log/pid.txt"
-    
+    pid-record
   else
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
       toast "Error: Both binaries are missing: $(basename "${bin_box}") and $(basename "${bin_xray}"). Please check your installation."
