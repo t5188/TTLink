@@ -1,16 +1,6 @@
 {
   "inbounds": [
     {
-      "tag": "in-1070",
-      "port": 1070,
-      "listen": "127.0.0.1",
-      "protocol": "socks",
-      "settings": {
-        "auth": "noauth",
-        "udp": true
-      }
-    },
-    {
       "tag": "in-1079",
       "port": 1079,
       "listen": "127.0.0.1",
