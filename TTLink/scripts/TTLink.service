@@ -197,50 +197,6 @@ forward() {
   ipt_tun "ip6tables" "${action}"
 }
 
-init_uids() {
-  uid=""
-  uids=()
-  if [ -f "$(dirname $(pwd))/log/uids.list" ]; then
-    rm "$(dirname $(pwd))/log/uids.list"
-  fi
-
-  for package_name in "${package_list[@]}"; do
-    uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
-    if [ -n "${uid}" ]; then
-      uids+=("${uid}")
-      echo "${package_name}: ${uid}" >>"$(dirname $(pwd))/log/uids.list"
-    fi
-  done
-
-  for package_name in "${appclones[@]}"; do
-    uid=$(busybox awk -v package="${package_name}" '$1 == package {print $2}' /data/system/packages.list)
-    if [ -n "${uid}" ]; then
-      uid="999$uid"
-      uids+=("${uid}")
-      echo "${package_name}: ${uid}" >>"$(dirname $(pwd))/log/uids.list"
-    fi
-  done
-
-  sort -t ':' -k2 -n "$(dirname $(pwd))/log/uids.list" -o "$(dirname $(pwd))/log/uids.list"
-  uids=($(printf "%s\n" "${uids[@]}" | sort -n | uniq))
-}
-
-init_uidrange() {
-  init_uids
-  start=0
-  end=99999999
-  previous=$start
-  for uid in "${uids[@]}"; do
-    if [[ $((uid - 1)) -ge $previous ]]; then
-      echo "${previous}-$((uid - 1))"
-    fi
-    previous=$((uid + 1))
-  done
-  if [[ $previous -le $end ]]; then
-    echo "${previous}-${end}"
-  fi
-}
-
 uidrange() {
   local action=${1}
   stdout2array=()
@@ -380,27 +336,6 @@ run_del_trp() {
   del_trp "ip -6" "${IP6V}" "${chain_name}6"
 }
 
-add_cron() {
-  if [[ "${crond_task}" == "enable" ]]; then
-    crontab_file="$(pwd)/root"
-    if pgrep busybox crond >/dev/null; then
-      kill -9 $(pgrep busybox crond)
-    fi
-    echo "5 0,12 * * * touch ${module_dir}/disable && sleep 3 && rm ${module_dir}/disable" > "${crontab_file}"
-    nohup busybox crond -c $(pwd)/ >/dev/null 2>&1 &
-    log Info "New task: $(busybox crontab -l -c $(pwd)/)" >>"$(dirname $(pwd))/log/run.log"
-  else
-    log Warn "crond_task is not set to enable. No crond task created." >>"$(dirname $(pwd))/log/run.log"
-  fi
-}
-
-del_cron() {
-  if pgrep busybox crond >/dev/null; then
-    kill -9 $(pgrep busybox crond)
-    rm $(pwd)/root >/dev/null 2>&1
-  fi
-}
-
 disable_quic() {
   ${1} ${2} OUTPUT -p udp --dport 443 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
   ${1} ${2} OUTPUT -p udp --dport 80 -m owner ! --uid-owner ${box_user} ! --gid-owner ${box_group} -j REJECT
@@ -420,11 +355,6 @@ del_disable_quic() {
     disable_quic "${IPV}" "-D"
     disable_quic "${IP6V}" "-D"
   fi
-}
-
-version() {
-  version_box=$(${bin_box} version | head -n 1 | awk '{print $3}')
-  version_xray=$(${bin_xray} version | head -n 1 | awk '{print $2}')
 }
 
 ownership() {
@@ -538,31 +468,6 @@ stop_trp() {
   description "🥴" "stopped"
 }
 
-InChange() {
-  if [[ "${network_mode}" == "tproxy" ]]; then
-    $yq '.inbounds = [{"type":"tproxy","tag":"tproxy-in","listen":"::","listen_port":2025}]' -i --output-format=json "${inbounds_config_file}"
-    tp_port=$(awk -F':' '/"listen_port"/ {gsub(/[^0-9]/, "", $NF); print $NF; exit}' "${box_confs_dir}"/*.json 2>/dev/null)
-  elif [[ "${network_mode}" == "tun" ]]; then
-    $yq '.inbounds = [{"type":"tun","tag":"tun-in","interface_name":"tun0","mtu":1400,"auto_route":true,"strict_route":true,"endpoint_independent_nat":true,"address":["172.18.0.1/30","fdfe:dcba:9876::1/126"],"stack":"system"}]' -i --output-format=json "${inbounds_config_file}"
-  else
-    log Warn "Only supports tproxy or tun " > "$(dirname $(pwd))/log/run.log"
-    toast "network_mode Error"
-    exit 1
-  fi
-}
-
-description() {
-  local symbol=$1
-  local event=$2
-  version
-  prop_file="${module_dir}/module.prop"
-  core_name_box="${bin_box##*/}"
-  core_name_xray="${bin_xray##*/}"
-  current_time=$(date "+[%m.%d %H:%M]")
-  sed -i "/description/c\description=${current_time} ${symbol} ${core_name_box} ${version_box} work with ${core_name_xray} ${version_xray} ${network_mode} ${event}" "${prop_file}"
-  log Info "${symbol} ${network_mode} ${event}" >>"$(dirname $(pwd))/log/run.log"
-}
-
 case "$1" in
 enable)
   if [[ "${network_mode}" == "tproxy" ]]; then
@@ -580,4 +485,4 @@ disable)
   ;;
 esac
 
-# TTLink.service
+# TTLink.service Last edited: 2025.12.05
