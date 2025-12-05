@@ -309,7 +309,7 @@ launch_cores() {
   ulimit -SHn 1000000
   ownership
   init_outbound
-  ech-tunnel
+  [ "${ENABLE_THIRD_CORE}" -eq 0 ] && ech-tunnel
   pid_3core=$!
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
     nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D $(dirname $(pwd))/binary/ >/dev/null 2>&1 &
@@ -324,7 +324,7 @@ launch_cores() {
 
     echo "${bin_box##*/}:${pid_box}" >"$(dirname "$(pwd)")/log/pid.txt"
     echo "${bin_xray##*/}:${pid_xray}" >>"$(dirname "$(pwd)")/log/pid.txt"
-    echo "${bin_3core##*/}:${pid_3core}" >>"$(dirname "$(pwd)")/log/pid.txt"
+    [ "${ENABLE_THIRD_CORE}" -eq 0 ] && echo "${bin_3core##*/}:${pid_3core}" >>"$(dirname "$(pwd)")/log/pid.txt"
     
   else
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
@@ -339,7 +339,9 @@ launch_cores() {
 }
 
 shutdown_cores() {
-  awk -F':' '{print $1}' "$(dirname "$(pwd)")/log/pid.txt" | while read core_name; do killall -9 "${core_name}" >/dev/null 2>&1; done
+  while IFS=: read name pid; do
+    kill -9 "$pid"
+  done < "$(dirname "$(pwd)")/log/pid.txt"
   find ".." -type f \( -name "*.log" -o -name "*.txt" -o -name "*.list" \) ! -name "run.log" -exec rm -f {} +
 }
 
