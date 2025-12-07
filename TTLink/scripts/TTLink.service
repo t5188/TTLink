@@ -1,6 +1,6 @@
 #!/system/bin/sh
 cd ${0%/*} # current working directory
-source $(pwd)/settings.ini
+source "$(pwd)/settings.ini"
 
 disable_ipv6() {
   sysctl -w net.ipv4.ip_forward=1
@@ -36,7 +36,7 @@ device_index() {
       sleep 2
       retry_count=$((retry_count + 1))
     done
-    [[ -n "${index}" ]] && echo "${index} ${device}" >$(pwd)/tables.tmp
+    [[ -n "${index}" ]] && echo "${index} ${device}" >"$(pwd)/tables.tmp"
     [[ -z "${index}" ]] && toast "Failed to fetch index" && exit 1
   fi
   read index device <"$(pwd)/tables.tmp"
@@ -300,15 +300,15 @@ del_disable_quic() {
 ownership() {
   chmod 755 ${bin_box} ${bin_xray}
   chown root:net_admin ${bin_box} ${bin_xray}
-  chmod o+rw ${public_log_dir}
-  find ".." -type f -name "*.log" ! -name "run.log" -exec rm -f {} + 2>/dev/null
+  chmod o+rw ${log_dir}
+  find "$(dirname "$(pwd)")" -path "$(dirname "$(pwd)")/confs" -prune -o -type f \( -name "root" -o -name "*.log" -o -name "*.txt" -o -name "*.list" \) ! -name "run.log" -exec rm -f {} +
 }
 
 launch_cores() {
   ulimit -SHn 1000000
   ownership
   if [[ -f "${bin_box}" && -f "${bin_xray}" ]]; then
-    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D $(dirname $(pwd))/binary/ >/dev/null 2>&1 &
+    nohup busybox setuidgid ${box_user}:${box_group} ${bin_box} run -C ${box_confs_dir} -D $(dirname "$(pwd)")/binary/ >/dev/null 2>&1 &
     pid_box=$!
     if [[ "${network_mode}" == "tun" ]]; then
       forward -I
@@ -318,6 +318,7 @@ launch_cores() {
     nohup busybox setuidgid ${xray_user}:${xray_group} ${bin_xray} run -confdir ${xray_confx_dir} >/dev/null 2>&1 &
     pid_xray=$!
     ech-tunnel
+    cron_task
     pid-record
   else
     if [[ ! -f "${bin_box}" && ! -f "${bin_xray}" ]]; then
@@ -334,8 +335,8 @@ launch_cores() {
 shutdown_cores() {
   while IFS=: read name pid; do
     kill -9 "$pid"
-  done < "$(dirname "$(pwd)")/log/pid.txt"
-  find ".." -type f \( -name "*.log" -o -name "*.txt" -o -name "*.list" \) ! -name "run.log" -exec rm -f {} +
+  done < "${log_dir}/pid.txt"
+  find "$(dirname "$(pwd)")" -path "$(dirname "$(pwd)")/confs" -prune -o -type f \( -name "root" -o -name "*.log" -o -name "*.txt" -o -name "*.list" \) ! -name "run.log" -exec rm -f {} +
 }
 
 start_tun() {
@@ -344,7 +345,6 @@ start_tun() {
   fi
   InChange
   launch_cores
-  add_cron
   toast "🤪TUN ENABLED"
   description "🤪" "started"
 }
@@ -356,8 +356,7 @@ stop_tun() {
   forward -D
   [[ "${dns2tun}" == "enable" ]] && rm_dns_tun
   uidrange del
-  rm -f $(pwd)/tables.tmp
-  del_cron
+  rm -f "$(pwd)"/tables.tmp
   shutdown_cores
   toast "🥴TUN DISABLED"
   description "🥴" "stopped"
@@ -373,7 +372,6 @@ start_trp() {
   run_add_trp
   run_disable_quic
   launch_cores
-  add_cron
   toast "🤪TP ENABLED"
   description "🤪" "started"
 }
@@ -384,7 +382,6 @@ stop_trp() {
   fi
   run_del_trp >/dev/null 2>&1
   del_disable_quic
-  del_cron
   shutdown_cores
   toast "🥴TP DISABLED"
   description "🥴" "stopped"
