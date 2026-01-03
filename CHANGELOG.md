@@ -1,6 +1,6 @@
-更新说明：
-- 更新版本号过低的 bug
-- 默认支持ipv6，且不再设置ipv6开关，避免个别应用无法正常使用
-- 增加对第三方ech-tunnel内核的支持
-- 优化代码
-- ----------
+# Release Notes
+## v2.31
+_Release Date: 2026-1-4_
+
+- Update settings.ini
+---
