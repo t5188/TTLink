@@ -371,6 +371,8 @@ start_trp() {
   init_uids
   run_add_trp
   run_disable_quic
+  fw_clean iptables
+  fw_clean ip6tables
   launch_cores
   toast "🤪TP ENABLED"
   description "🤪" "started"
@@ -404,4 +406,4 @@ disable)
   ;;
 esac
 
-# TTLink.service Last edited: 2025.12.05
+# Last edited: 2026.1.12
