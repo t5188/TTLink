@@ -23,11 +23,13 @@
         "type": "hosts",
         "tag": "hosts",
         "predefined": {
-          "api.acstudycn.eu.org": "172.67.72.30",
-          "api.acstudyhk.eu.org": "172.67.72.31",
-          "api.acstudyus.eu.org": "172.67.72.32",
-          "api.coomsncn.eu.org": "172.67.72.33",
-          "api.bcraftmc.eu.org": "172.67.72.34"
+          "api.acstudyus.eu.org": [
+            "104.18.37.237",
+            "172.64.229.2",
+            "162.159.45.63",
+            "2a06:98c1:3104:e78c:df0a:da55:4bf6:341",
+            "2803:f800:51:c:aea1:3107:95ef:19e8"
+          ]
         }
       }
     ],
