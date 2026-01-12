@@ -1,6 +1,6 @@
 # Release Notes
-## v2.31
-_Release Date: 2026-1-4_
+## v2.32
+_Release Date: 2026-1-12_
 
-- Update settings.ini
+- Delete all REJECT and DROP rules from custom chains in the filter table to ensure normal operation of Google services.
 ---
