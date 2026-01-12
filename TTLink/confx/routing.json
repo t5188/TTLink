@@ -5,12 +5,6 @@
     "rules": [
       {
         "inboundTag": [
-          "in-1070"
-        ],
-        "outboundTag": "ech-tunnel"
-      },
-      {
-        "inboundTag": [
           "in-1079"
         ],
         "outboundTag": "222+236tunnel"
