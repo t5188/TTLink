@@ -1,51 +1,46 @@
-name: Build hev-socks5-tunnel Android
-run-name: Build Android libhev-socks5-tunnel.so
+name: Build hev-socks5-tunnel ARM64 Binary
+run-name: Build Termux AARCH64 Bin
 
-# 手动触发
 on:
   workflow_dispatch:
     inputs:
       ref:
-        description: 编译分支/tag/commit
+        description: 源码编译分支
         default: main
         required: false
 
 jobs:
-  build-android:
+  build-aarch64:
     runs-on: ubuntu-latest
     steps:
-      - name: Install build dependencies
+      - name: 安装编译依赖与交叉编译器
         run: |
           sudo apt update
-          sudo apt install -y git make autoconf automake libtool
+          sudo apt install -y git make autoconf automake libtool gcc aarch64-linux-gnu-gcc
 
-      - name: Checkout hev-socks5-tunnel source (含子模块)
+      - name: 克隆源码并拉取全部子模块
         run: |
           git clone --recursive https://github.com/heiher/hev-socks5-tunnel.git src
           cd src
           git checkout ${{ github.event.inputs.ref || 'main' }}
 
-      - name: Setup Android NDK r21b
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r21b
-          add-to-path: true
-
-      - name: Build Android so with ndk-build
+      - name: 交叉编译 ARM64(aarch64) 二进制程序
         run: |
           cd src
-          mkdir -p android
-          cd android
-          ndk-build APP_ABI=arm64-v8a,armeabi-v7a,x86,x86_64
+          ./autogen.sh
+          mkdir build-aarch64 && cd build-aarch64
+          # 指定交叉编译主机架构 aarch64-linux-gnu
+          ../configure --host=aarch64-linux-gnu
+          make -j$(nproc)
 
-      - name: Collect output so files
+      - name: 整理编译成品
         run: |
-          mkdir -p output
-          cp -r src/android/libs/* output/
+          mkdir output
+          cp src/build-aarch64/.libs/hev-socks5-tunnel output/hev-socks5-tunnel-aarch64
 
-      - name: Upload compiled libs
+      - name: 上传二进制文件
         uses: actions/upload-artifact@v4
         with:
-          name: hev-android-libs
+          name: hev-socks5-tunnel-termux-arm64
           path: output/
           
