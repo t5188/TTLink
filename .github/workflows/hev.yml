@@ -1,1 +1,51 @@
+name: Build hev-socks5-tunnel Android
+run-name: Build Android libhev-socks5-tunnel.so
 
+# 手动触发
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 编译分支/tag/commit
+        default: main
+        required: false
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git make autoconf automake libtool
+
+      - name: Checkout hev-socks5-tunnel source (含子模块)
+        run: |
+          git clone --recursive https://github.com/heiher/hev-socks5-tunnel.git src
+          cd src
+          git checkout ${{ github.event.inputs.ref || 'main' }}
+
+      - name: Setup Android NDK r21b
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r21b
+          add-to-path: true
+
+      - name: Build Android so with ndk-build
+        run: |
+          cd src
+          mkdir -p android
+          cd android
+          ndk-build APP_ABI=arm64-v8a,armeabi-v7a,x86,x86_64
+
+      - name: Collect output so files
+        run: |
+          mkdir -p output
+          cp -r src/android/libs/* output/
+
+      - name: Upload compiled libs
+        uses: actions/upload-artifact@v4
+        with:
+          name: hev-android-libs
+          path: output/
+          
